@@ -12,12 +12,12 @@ function App() {
   const [roundResults, setRoundResults] = useState(null);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
-    setSocket(newSocket);
+    //const newSocket = io('http://localhost:5000');
+    //setSocket(newSocket);
 
-    return () => {
-      newSocket.disconnect();
-    };
+    //return () => {
+      //newSocket.disconnect();
+    //};
   }, []);
 
   useEffect(() => {

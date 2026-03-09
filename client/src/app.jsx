@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Home from "./pages/Home";
-import Waiting from "./pages/Waiting";
-import Categories from "./pages/Categories";
+import Home from "/pages/Home.jsx";
+import Waiting from "/pages/Waiting.jsx";
+import Categories from "/pages/Categories.jsx";
 import Results from "./pages/Results";
 import "./styles/main.css";
 
