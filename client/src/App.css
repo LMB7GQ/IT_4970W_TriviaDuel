@@ -82,3 +82,73 @@
 .question-area button:hover {
   background-color: #218838;
 }
+.app-container{
+  text-align:center;
+  padding:40px;
+  background:#eee;
+  min-height:100vh;
+}
+
+/* TITLE */
+
+.title-box{
+  background:#1f5fa7;
+  color:white;
+  font-size:32px;
+  padding:20px 60px;
+  border-radius:12px;
+  display:inline-block;
+  margin-bottom:40px;
+}
+
+/* MODE CARD */
+
+.mode-container{
+  display:flex;
+  justify-content:center;
+}
+
+.mode-card{
+  background:#dfe6ee;
+  padding:40px;
+  border-radius:20px;
+  width:400px;
+}
+
+.mode-btn{
+  background:#1f5fa7;
+  color:white;
+  border:none;
+  padding:10px 25px;
+  margin-bottom:10px;
+  border-radius:6px;
+  cursor:pointer;
+}
+
+/* WAITING */
+
+.loading-dots{
+  display:flex;
+  justify-content:center;
+  gap:20px;
+}
+
+.dot{
+  width:18px;
+  height:18px;
+  border-radius:50%;
+}
+
+.red{background:red}
+.yellow{background:gold}
+.blue{background:blue}
+
+/* QUESTION */
+
+.question-card{
+  background:white;
+  padding:40px;
+  border-radius:20px;
+  width:600px;
+  margin:auto;
+}

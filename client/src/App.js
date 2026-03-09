@@ -75,26 +75,48 @@ function App() {
   };
 
   return (
-    <div className="App">
+    <div className="app-container">
+      <div className = "title-box">
       <h1>Trivia Duel</h1>
+      </div>
 
       {gameState === 'idle' && (
-        <div className="join-section">
-          <input
-            type="text"
-            placeholder="Enter your name"
-            value={playerName}
-            onChange={(e) => setPlayerName(e.target.value)}
-          />
-          <button onClick={handleJoinGame}>Join Game</button>
-        </div>
-      )}
+  <div className="mode-container">
 
-      {gameState === 'waiting' && (
-        <div className="join-section">
-          <p>Waiting for another player to join...</p>
-        </div>
-      )}
+    <div className="mode-card">
+      <button className="mode-btn" onClick={handleJoinGame}>
+        Ranked Duel
+      </button>
+
+      <p>
+        Compete against another player in real-time trivia combat.
+      </p>
+
+      <input
+        type="text"
+        placeholder="Enter your name"
+        value={playerName}
+        onChange={(e) => setPlayerName(e.target.value)}
+      />
+
+    </div>
+
+  </div>
+)}
+
+{gameState === 'waiting' && (
+  <div className="waiting-screen">
+
+    <div className="loading-dots">
+      <div className="dot red"></div>
+      <div className="dot yellow"></div>
+      <div className="dot blue"></div>
+    </div>
+
+    <p>Searching for an opponent...</p>
+
+  </div>
+)}
 
       {gameState === 'playing' && currentQuestion && (
         <div className="game-section">

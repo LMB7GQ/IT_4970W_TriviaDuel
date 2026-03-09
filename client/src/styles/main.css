@@ -1,0 +1,101 @@
+body {
+    margin:0;
+    font-family: Arial;
+    background:#eee;
+  }
+  
+  .page{
+    text-align:center;
+    padding:40px;
+  }
+  
+  /* TITLE */
+  
+  .title-box{
+    background:#1f5fa7;
+    color:white;
+    padding:20px 60px;
+    font-size:32px;
+    border-radius:12px;
+    display:inline-block;
+  }
+  
+  /* MODE CARDS */
+  
+  .mode-container{
+    margin-top:80px;
+    background:#d8dee6;
+    padding:40px;
+    border-radius:20px;
+    display:flex;
+    justify-content:center;
+    gap:40px;
+  }
+  
+  .mode-btn{
+    background:#1f5fa7;
+    color:white;
+    border:none;
+    padding:10px 30px;
+    border-radius:6px;
+    cursor:pointer;
+  }
+  
+  /* WAITING DOTS */
+  
+  .waiting-animation{
+    display:flex;
+    justify-content:center;
+    gap:20px;
+  }
+  
+  .dot{
+    width:20px;
+    height:20px;
+    border-radius:50%;
+  }
+  
+  .red{ background:red }
+  .yellow{ background:gold }
+  .blue{ background:blue }
+  
+  /* CATEGORY */
+  
+  .category-box{
+    margin-top:40px;
+    background:#ddd;
+    padding:30px;
+    display:inline-block;
+  }
+  
+  .category-btn{
+    background:#1f5fa7;
+    color:white;
+    border:none;
+    margin:5px;
+    padding:10px 15px;
+    border-radius:6px;
+  }
+  
+  /* PLAYER BAR */
+  
+  .player-bar{
+    position:fixed;
+    bottom:0;
+    width:100%;
+    display:flex;
+  }
+  
+  .player{
+    flex:1;
+    padding:30px;
+    font-size:22px;
+  }
+  
+  .blue{
+    background:#3c78d8;
+  }
+  
+  .red{
+    background:#e53e3e;
+  }
