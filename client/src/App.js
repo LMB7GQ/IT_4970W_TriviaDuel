@@ -19,7 +19,8 @@ function App() {
   const [playerScore, setPlayerScore] = useState(0);
   const [botScore, setBotScore] = useState(0);
   const [questionIndex, setQuestionIndex] = useState(0);
-//placeholder questions for demo
+
+  //placeholder questions for demo
   const soloQuestions = [
     { question: 'What is the capital of France?', answer: 'Paris' },
     { question: 'What planet is known as the Red Planet?', answer: 'Mars' },

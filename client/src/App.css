@@ -1,3 +1,4 @@
+/*
 body {
   margin: 0;
   font-family: "Segoe UI", Arial, sans-serif;
@@ -197,7 +198,7 @@ body {
 .game-section li:last-child {
   border-bottom: none;
 }
-/*
+*/
 body {
   margin: 0;
   font-family: "Segoe UI", Arial, sans-serif;
@@ -311,4 +312,3 @@ button:hover {
 .results-area li {
   padding: 6px;
 }
-*/
