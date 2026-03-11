@@ -1,6 +1,7 @@
 body {
   margin: 0;
   font-family: "Segoe UI", Arial, sans-serif;
+  color: #f5e6c8;
 
   background:
     linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.55)),
@@ -148,6 +149,19 @@ body {
   margin-bottom: 18px;
 }
 
+.timer-box {
+  margin-bottom: 16px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #f0d891;
+}
+
+.bot-status {
+  margin-top: 14px;
+  color: #f0d891;
+  font-style: italic;
+}
+
 .scoreboard {
   display: flex;
   justify-content: space-between;
@@ -196,4 +210,10 @@ body {
 .results-area li:last-child,
 .game-section li:last-child {
   border-bottom: none;
+}
+
+.form-message {
+  margin-top: 12px;
+  color: #B21F00;
+  font-weight: 600;
 }
