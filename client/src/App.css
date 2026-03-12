@@ -4,7 +4,8 @@ body {
   color: #f5e6c8;
 
   background:
-    linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.55)),
+    radial-gradient(circle at center, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%),
+    linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.65)),
     url("./assets/background.jpg");
 
   background-size: cover;
