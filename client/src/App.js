@@ -1,3 +1,4 @@
+import "./App.css";
 import { Routes, Route } from "react-router-dom";
 
 import LoginPage from "./pages/LoginPage";
@@ -9,14 +10,18 @@ import Finish from "./pages/Finish";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<LoginPage />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/modes" element={<ModeSelect />} />
-      <Route path="/waiting" element={<WaitingPage />} />
-      <Route path="/game" element={<GamePage />} />
-      <Route path="/finish" element={<Finish />} />
-    </Routes>
+    <div className="app-container">
+      <div className="title-box">Trivia Duel</div>
+
+      <Routes>
+        <Route path="/" element={<LoginPage />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/modes" element={<ModeSelect />} />
+        <Route path="/waiting" element={<WaitingPage />} />
+        <Route path="/game" element={<GamePage />} />
+        <Route path="/finished" element={<Finish />} />
+      </Routes>
+    </div>
   );
 }
 
