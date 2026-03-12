@@ -1,3 +1,28 @@
+import { Routes, Route } from "react-router-dom";
+
+import LoginPage from "./pages/LoginPage";
+import Signup from "./pages/Signup";
+import ModeSelect from "./pages/ModeSelect";
+import WaitingPage from "./pages/WaitingPage";
+import GamePage from "./pages/GamePage";
+import Finish from "./pages/Finish";
+
+function App() {
+  return (
+    <Routes>
+      <Route path="/" element={<LoginPage />} />
+      <Route path="/signup" element={<Signup />} />
+      <Route path="/modes" element={<ModeSelect />} />
+      <Route path="/waiting" element={<WaitingPage />} />
+      <Route path="/game" element={<GamePage />} />
+      <Route path="/finish" element={<Finish />} />
+    </Routes>
+  );
+}
+
+export default App;
+
+/*
 import './App.css';
 import { useState, useEffect, useCallback, useMemo} from 'react';
 import { io } from 'socket.io-client';
@@ -467,8 +492,8 @@ function App() {
         <div className="game-section">
           <div className="matchup-line">
             {gameMode === 'practice'
-              ? `${playerName} Practice Mode`
-              : `${playerName} vs ${roomInfo?.opponent || 'Bot Knight'}`}
+              ? ${playerName} Practice Mode
+              : ${playerName} vs ${roomInfo?.opponent || 'Bot Knight'}}
           </div>
 
           {gameMode !== 'ranked' && (
@@ -571,3 +596,4 @@ function App() {
 }
 
 export default App;
+*/
