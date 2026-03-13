@@ -1,42 +1,52 @@
+import React from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
-function FinishedPage(){
-
+function FinishedPage() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const {playerScore,botScore,playerName} = location.state;
+  // Get data passed from GamePage
+  const { playerScore, botScore, playerName, mode } = location.state || {};
 
-  return(
+  const handlePlayAgain = () => {
+    // Go back to mode selection
+    navigate("/modes", { state: { playerName } });
+  };
 
+  return (
     <div className="game-section">
-
       <h2>Battle Complete</h2>
 
       <div className="scoreboard">
-
         <div className="score-card">
           {playerName}
-          <br/>
+          <br />
           Final Score: {playerScore}
         </div>
 
-        <div className="score-card">
-          Bot Knight
-          <br/>
-          Final Score: {botScore}
-        </div>
-
+        {mode !== "practice" && (
+          <div className="score-card">
+            {mode === "bot" ? "Bot Knight" : "Opponent"}
+            <br />
+            Final Score: {botScore}
+          </div>
+        )}
       </div>
 
-      <button onClick={()=>navigate("/modes")}>
-        Play Again
-      </button>
+      {mode === "bot" && (
+        <div className="results-area">
+          <h3>Round Summary</h3>
+          <p>
+            {playerName}: {playerScore} points
+            <br />
+            Bot Knight: {botScore} points
+          </p>
+        </div>
+      )}
 
+      <button onClick={handlePlayAgain}>Play Again</button>
     </div>
-
   );
-
 }
 
 export default FinishedPage;
