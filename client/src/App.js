@@ -19,7 +19,7 @@ function App() {
         <Route path="/modes" element={<ModeSelect />} />
         <Route path="/waiting" element={<WaitingPage />} />
         <Route path="/game" element={<GamePage />} />
-        <Route path="/finished" element={<Finish />} />
+        <Route path="/finish" element={<Finish />} />
       </Routes>
     </div>
   );

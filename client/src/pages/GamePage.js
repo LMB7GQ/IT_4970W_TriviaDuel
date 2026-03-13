@@ -118,7 +118,7 @@ function GamePage() {
     // Move to next question
     const nextIndex = questionIndex + 1;
     if (nextIndex >= soloQuestions.length) {
-      navigate("/finished", {
+      navigate("/finish", {
         state: { playerScore: newPlayerScore, botScore: newBotScore, playerName, mode },
       });
       return;
