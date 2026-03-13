@@ -110,12 +110,10 @@ function GamePage() {
         : null,
     });
 
-    // Reset input and bot for next question
     setUserAnswer("");
     setBotAnswered(false);
     setBotAnswerData(null);
 
-    // Move to next question
     const nextIndex = questionIndex + 1;
     if (nextIndex >= soloQuestions.length) {
       navigate("/finish", {
