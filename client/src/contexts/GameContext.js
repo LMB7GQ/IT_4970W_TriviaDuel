@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
 const GameContext = createContext();
@@ -27,23 +27,35 @@ export const GameProvider = ({ children }) => {
 
   const [botAnswered, setBotAnswered] = useState(false);
   const [botAnswerData, setBotAnswerData] = useState(null);
-
-  // Reverting to hardcoded questions for solo/bot demo
-  const soloQuestions = useMemo(() => [
-    { _id: 'mock1', question: 'What is the capital of France?', answer: 'Paris' },
-    { _id: 'mock2', question: 'What planet is known as the Red Planet?', answer: 'Mars' },
-    { _id: 'mock3', question: 'How many sides does a triangle have?', answer: '3' },
-    { _id: 'mock4', question: 'Who wrote Hamlet?', answer: 'Shakespeare' },
-    { _id: 'mock5', question: 'What is the largest ocean on Earth?', answer: 'Pacific' }
-  ], []);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
     setSocket(newSocket);
+    console.log('[Socket] Initialized connection to http://localhost:5000');
     return () => newSocket.disconnect();
   }, []);
 
+  const fetchNextSoloQuestion = useCallback(async () => {
+    try {
+      setLoading(true);
+      console.log(`[Solo] Fetching next question (Rank: ${playerRank})...`);
+      const response = await fetch(`http://localhost:5000/api/questions/random?rank=${playerRank}`);
+      if (!response.ok) throw new Error('Failed to fetch');
+      const data = await response.json();
+      console.log('[Solo] Fetched Question:', data._id, data.question);
+      setCurrentQuestion(data);
+      setLoading(false);
+      return data;
+    } catch (err) {
+      console.error("[Solo] Fetch error:", err);
+      setLoading(false);
+      return null;
+    }
+  }, [playerRank]);
+
   const resetGame = useCallback(() => {
+    console.log('[Game] Resetting game state');
     setScreen('modeSelect');
     setGameMode(null);
     setRoomInfo(null);
@@ -58,14 +70,19 @@ export const GameProvider = ({ children }) => {
     setTimeLeft(15);
     setBotAnswered(false);
     setBotAnswerData(null);
+    setLoading(false);
   }, []);
 
   useEffect(() => {
     if (!socket) return;
 
-    socket.on('waiting', () => setScreen('waiting'));
+    socket.on('waiting', () => {
+      console.log('[Socket] Event: waiting');
+      setScreen('waiting');
+    });
 
     socket.on('matchReady', (data) => {
+      console.log('[Socket] Event: matchReady', data);
       setRoomInfo({
         roomId: data.roomId,
         myId: data.myId,
@@ -77,10 +94,12 @@ export const GameProvider = ({ children }) => {
     });
 
     socket.on('banPickUpdate', (data) => {
+      console.log('[Socket] Event: banPickUpdate', data);
       setBanPick((prev) => ({ ...prev, ...data }));
     });
 
     socket.on('categoryStart', (data) => {
+      console.log('[Socket] Event: categoryStart', data);
       setCurrentQuestion(data.question);
       setQuestionIndex(data.questionIndex);
       setRoundResults(null);
@@ -89,9 +108,13 @@ export const GameProvider = ({ children }) => {
       setTimeLeft(15);
     });
 
-    socket.on('answerAcknowledged', (data) => setMyResult(data));
+    socket.on('answerAcknowledged', (data) => {
+      console.log('[Socket] Event: answerAcknowledged', data);
+      setMyResult(data);
+    });
 
     socket.on('roundResults', (data) => {
+      console.log('[Socket] Event: roundResults', data);
       setRoundResults(data.results);
       setMyResult(null);
 
@@ -104,6 +127,7 @@ export const GameProvider = ({ children }) => {
       }
 
       if (data.matchWinner) {
+        console.log('[Socket] Match Over. Winner:', data.matchWinner);
         setTimeout(() => setScreen('finished'), 2000);
       } else if (!data.categoryDone) {
         setTimeout(() => {
@@ -116,6 +140,7 @@ export const GameProvider = ({ children }) => {
     });
 
     socket.on('opponentDisconnected', (data) => {
+      console.log('[Socket] Event: opponentDisconnected', data);
       alert(data.message || 'Opponent disconnected');
       resetGame();
     });
@@ -131,7 +156,10 @@ export const GameProvider = ({ children }) => {
     };
   }, [socket, roomInfo, resetGame]);
 
-  const handleSubmitAnswer = useCallback((timeExpired = false) => {
+  const handleSubmitAnswer = useCallback(async (timeExpired = false) => {
+    const submittedAnswer = timeExpired ? '' : userAnswer;
+    console.log(`[Game] Submitting answer: "${submittedAnswer}" (Mode: ${gameMode})`);
+
     if (!timeExpired && !userAnswer.trim() && !myResult) return;
     if (myResult) return; 
 
@@ -143,10 +171,23 @@ export const GameProvider = ({ children }) => {
       return;
     }
 
-    // Bot / Practice Logic (Local)
-    const submittedAnswer = timeExpired ? '' : userAnswer;
-    const currentQ = soloQuestions[questionIndex];
-    const isCorrect = submittedAnswer.trim().toLowerCase() === currentQ.answer.toLowerCase();
+    // Bot / Practice Logic (Server-Validated)
+    let isCorrect = false;
+    let correctAnswer = '';
+    try {
+      console.log(`[Solo] Validating answer for question ${currentQuestion._id}...`);
+      const resp = await fetch(`http://localhost:5000/api/questions/${currentQuestion._id}/check`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userAnswer: submittedAnswer })
+      });
+      const checkData = await resp.json();
+      isCorrect = checkData.correct;
+      correctAnswer = checkData.correctAnswer;
+      console.log(`[Solo] Result: ${isCorrect ? 'CORRECT' : 'WRONG'}. Correct: "${correctAnswer}"`);
+    } catch (err) {
+      console.error("[Solo] Answer check error:", err);
+    }
 
     let newPlayerScore = playerScore;
     let newOpponentScore = opponentScore;
@@ -178,16 +219,17 @@ export const GameProvider = ({ children }) => {
     }
 
     setRoundResults(results);
-    setMyResult({ isCorrect, correctAnswer: currentQ.answer });
+    setMyResult({ isCorrect, correctAnswer });
     setUserAnswer('');
 
     const nextIndex = questionIndex + 1;
-    if (nextIndex >= soloQuestions.length) {
+    if (nextIndex >= 5) {
+      console.log('[Solo] Session Complete');
       setTimeout(() => setScreen('finished'), 2000);
     } else {
-      setTimeout(() => {
+      setTimeout(async () => {
         setQuestionIndex(nextIndex);
-        setCurrentQuestion(soloQuestions[nextIndex]);
+        await fetchNextSoloQuestion();
         setTimeLeft(15);
         setBotAnswered(false);
         setBotAnswerData(null);
@@ -195,75 +237,72 @@ export const GameProvider = ({ children }) => {
         setMyResult(null);
       }, 2000);
     }
-  }, [gameMode, userAnswer, socket, questionIndex, playerScore, opponentScore, botAnswerData, playerName, soloQuestions, timeLeft, myResult]);
+  }, [gameMode, userAnswer, socket, questionIndex, playerScore, opponentScore, botAnswerData, playerName, timeLeft, myResult, currentQuestion, fetchNextSoloQuestion]);
 
   // Timer logic for Bot/Practice
   useEffect(() => {
-    if (screen !== 'playing' || !currentQuestion) return;
+    if (screen !== 'playing' || !currentQuestion || loading) return;
     if (gameMode === 'ranked') return;
 
     if (timeLeft <= 0) {
+      console.log('[Game] Time expired');
       handleSubmitAnswer(true);
       return;
     }
 
     const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
-  }, [screen, currentQuestion, timeLeft, gameMode, handleSubmitAnswer]);
+  }, [screen, currentQuestion, timeLeft, gameMode, handleSubmitAnswer, loading]);
 
   // Bot logic
   useEffect(() => {
-    if (screen !== 'playing' || gameMode !== 'bot' || !currentQuestion) return;
+    if (screen !== 'playing' || gameMode !== 'bot' || !currentQuestion || loading) return;
 
     setBotAnswered(false);
     setBotAnswerData(null);
 
-    const botAccuracy = ((rank) => {
-      if (rank < 900) return 0.4;
-      if (rank < 1200) return 0.6;
-      if (rank < 1500) return 0.75;
-      return 0.85;
-    })(playerRank);
+    const rank = playerRank;
+    const botAccuracy = rank < 900 ? 0.4 : rank < 1200 ? 0.6 : rank < 1500 ? 0.75 : 0.85;
+    const responseTime = rank < 900 ? 9000 : rank < 1200 ? 7000 : rank < 1500 ? 5000 : 3000;
 
-    const responseTime = ((rank) => {
-      if (rank < 900) return 9000;
-      if (rank < 1200) return 7000;
-      if (rank < 1500) return 5000;
-      return 3000;
-    })(playerRank);
+    console.log(`[Bot] Bot is thinking (Accuracy: ${botAccuracy}, Time: ${responseTime}ms)...`);
 
-    const botTimer = setTimeout(() => {
+    const botTimer = setTimeout(async () => {
       const correct = Math.random() < botAccuracy;
+      console.log(`[Bot] Bot has answered. Correct: ${correct}`);
       setBotAnswered(true);
       setBotAnswerData({
-        answered: correct ? currentQuestion.answer : 'Wrong Answer',
+        answered: correct ? 'Correct Answer' : 'Wrong Answer',
         correct
       });
     }, responseTime);
 
     return () => clearTimeout(botTimer);
-  }, [screen, gameMode, currentQuestion, playerRank]);
+  }, [screen, gameMode, currentQuestion, playerRank, loading]);
 
   const joinRanked = useCallback(() => {
     if (!playerName.trim() || !socket) return;
+    console.log('[Socket] Emitting joinGame:', playerName, playerRank);
     setGameMode('ranked');
     socket.emit('joinGame', { playerName, rank: playerRank });
     setScreen('waiting');
   }, [playerName, socket, playerRank]);
 
-  const startBotGame = useCallback(() => {
+  const startBotGame = useCallback(async () => {
+    console.log('[Game] Starting Bot Duel');
     setGameMode('bot');
     setRoomInfo({ opponent: { name: 'Bot Knight' } });
-    setCurrentQuestion(soloQuestions[0]);
+    await fetchNextSoloQuestion();
     setScreen('playing');
-  }, [soloQuestions]);
+  }, [fetchNextSoloQuestion]);
 
-  const startPractice = useCallback(() => {
+  const startPractice = useCallback(async () => {
+    console.log('[Game] Starting Solo Practice');
     setGameMode('practice');
     setRoomInfo(null);
-    setCurrentQuestion(soloQuestions[0]);
+    await fetchNextSoloQuestion();
     setScreen('playing');
-  }, [soloQuestions]);
+  }, [fetchNextSoloQuestion]);
 
   const value = {
     socket, screen, setScreen,
@@ -277,7 +316,7 @@ export const GameProvider = ({ children }) => {
     botAnswered, setBotAnswered, botAnswerData, setBotAnswerData,
     resetGame, joinRanked, startBotGame, startPractice,
     handleSubmitAnswer,
-    soloQuestions
+    loading
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

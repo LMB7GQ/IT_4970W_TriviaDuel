@@ -17,7 +17,8 @@ const getRandomQuestion = async (req, res) => {
     const { rank = 500, category } = req.query;
     const difficulty = rankToDifficulty(rank);
 
-    const filter = { category, difficulty };
+    const filter = { difficulty };
+    if (category) filter.category = category;
 
     // Pull 20 least-used matching questions then pick one randomly.
     // Compound index on { category, difficulty, timesUsed } makes this fast.
