@@ -39,6 +39,7 @@ const initSocket = (io) => {
             phase: 'ban1',  // ban1 → ban2 → pick → playing
           },
           categoryResults: {},
+          categoryScores: {},
           currentCategory: null,
           currentQuestionIndex: 0,
           roundAnswers: {},
@@ -118,6 +119,7 @@ const initSocket = (io) => {
       banPick.pick = category;
       banPick.phase = 'playing';
       room.currentCategory = category;
+      room.categoryScores[category] = { [p1]: 0, [p2]: 0 };
       room.currentQuestionIndex = 0;
       room.roundAnswers = {};
 
@@ -167,7 +169,10 @@ const initSocket = (io) => {
         // Build results for both players
         const results = {};
         playerOrder.forEach((pid) => {
-          if (room.roundAnswers[pid].isCorrect) room.players[pid].score += 1;
+          if (room.roundAnswers[pid].isCorrect) {
+            room.players[pid].score += 1;
+            room.categoryScores[currentCategory][pid] += 1;
+          }
           results[pid] = {
             name:         room.players[pid].name,
             answer:       room.roundAnswers[pid].answer,

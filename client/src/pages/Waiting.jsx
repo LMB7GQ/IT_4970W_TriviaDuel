@@ -1,30 +1,20 @@
-function Waiting() {
+import React from 'react';
+import { useGame } from '../contexts/GameContext';
 
-    return (
-      <div className="page">
-  
-        <div className="waiting-animation">
-          <div className="dot red"></div>
-          <div className="dot yellow"></div>
-          <div className="dot blue"></div>
-        </div>
-  
-        <div className="vs-text">VS</div>
-  
-        <div className="player-row">
-  
-          <div className="avatar red"></div>
-  
-          <h2>USERNAME</h2>
-  
-          <div className="rank">
-            Rank Gold: 1000
-          </div>
-  
-        </div>
-  
+function Waiting() {
+  const { playerName } = useGame();
+
+  return (
+    <div className="waiting-screen">
+      <div className="loading-dots">
+        <div className="dot red"></div>
+        <div className="dot yellow"></div>
+        <div className="dot blue"></div>
       </div>
-    );
-  }
-  
-  export default Waiting;
+      <div className="matchup-line">{playerName} vs ???</div>
+      <p>Searching for an opponent...</p>
+    </div>
+  );
+}
+
+export default Waiting;

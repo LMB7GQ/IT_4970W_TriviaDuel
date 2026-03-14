@@ -4,7 +4,7 @@ const {
   getCategories,
   getRandomQuestion,
   checkAnswer,
-} = require('../controllers/QuestionController');
+} = require('../controllers/questionController');
 
 // GET  /api/questions/categories             → static category list
 // GET  /api/questions/random?rank=&category= → 1 rank-matched question (solo free play)

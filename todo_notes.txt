@@ -1,0 +1,18 @@
+Hey, just a quick heads-up on what's left to do. I found those JSON files in the server/scripts/answers folder—turns out those are just "seed lists" of answers (like names and dates). They aren't full questions yet, which is why the database is still empty.
+
+Next Steps:
+1. Seed the DB: You need to run `node server/scripts/generateQuestions.js`. This script will grab those JSON files and use the Groq AI to write 5 questions for every single answer in the list.
+2. Get a Groq Key: You'll need a GROQ_API_KEY in your server/.env file for the script to work. They have a solid free tier if you don't have one yet.
+3. Test Ranked Mode: This part is already wired up! As soon as the DB has questions, Ranked mode will start pulling them automatically. You don't need to change any code there.
+4. Solo/Bot Mode: For the demo, I've kept these on "Mock" questions so the app doesn't crash while the DB is empty. Once you have real questions, we just need to toggle the fetch logic in GameContext.js to use them.
+
+The "GameContext" (React Pro-Tip):
+I moved all the messy socket logic into something called "React Context" (specifically GameContext.js). 
+- Think of Context like a "Global Radio Station." Instead of passing data down manually through every single component (Prop-Drilling), the Context broadcasts the game state to the entire app. 
+- Any page (Login, Playing, Results) can just "tune in" to the GameContext to get the current score, the socket connection, or the player's name. It keeps the code way cleaner and much easier to manage as the app grows.
+
+Tips for the Demo:
+- If you want to show the server is actually "alive," run the app in two different browser tabs and start a Ranked Match. It proves the backend is syncing everything in real-time.
+- Stick to the mocked Solo/Bot modes if you haven't seeded the DB yet—they're "safe" and won't crash if the database is empty.
+
+The "engine" is all wired up and ready to pull from the DB. Just needs some fuel (questions) in the tank!
