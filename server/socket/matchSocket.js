@@ -13,7 +13,13 @@ const initSocket = (io) => {
     socket.on('joinGame', async ({ playerName, rank = 500 }) => {
       console.log(`${playerName} (rank: ${rank}) is joining...`);
 
-      waitingPlayers.push({ socketId: socket.id, name: playerName, rank });
+      //Check to see if a plyer is already in waiting room, keeps the server from seeing the same socket id (same player) waiting.
+      const existingIndex = waitingPlayers.findIndex(p => p.socketId === socket.id);
+      if (existingIndex !== -1) {
+        waitingPlayers.splice(existingIndex, 1); //<--- "If we find the same player already on the list, remove the old spot and let them back in"
+      }
+
+      waitingPlayers.push({ socketId: socket.id, name: playerName, rank}); //waitingPlayers is an array, this pushes player info into this "waiting list"
 
       if (waitingPlayers.length >= 2) {
         const player1 = waitingPlayers.shift();
@@ -26,7 +32,7 @@ const initSocket = (io) => {
         rooms[roomId] = {
           roomId,
           categories,
-          // ✅ FIX: store explicit player order so p1/p2 is always guaranteed
+          //player order
           playerOrder: [player1.socketId, player2.socketId],
           players: {
             [player1.socketId]: { id: player1.socketId, name: player1.name, rank: player1.rank, score: 0 },
@@ -72,6 +78,18 @@ const initSocket = (io) => {
       }
     });
 
+    // Leave Matchup, Let players leave if waiting too long or other reason
+    socket.on('leaveMatchup', () => {
+      console.log(`User ${socket.id} left the queue.`); //Self note: use `` not '' or "". JavaScript syntax error, trying to print text
+
+      const index = waitingPlayers.findIndex((p) => p.socketId === socket.id);
+
+      if (index !== -1) {
+        waitingPlayers.splice(index, 1);
+        console.log("Player removed from waiting list.");
+      }
+    });
+
     // ── banCategory ───────────────────────────────────────────
     socket.on('banCategory', ({ category }) => {
       const roomId = playerToRoom[socket.id];
@@ -80,7 +98,7 @@ const initSocket = (io) => {
       if (!room) return;
 
       const { banPick, playerOrder } = room;
-      const [p1, p2] = playerOrder; // ✅ FIX: use playerOrder not Object.keys()
+      const [p1, p2] = playerOrder; 
 
       // Validate it's this player's turn
       const expectedTurn = banPick.phase === 'ban1' ? p1 : p2;
@@ -109,7 +127,7 @@ const initSocket = (io) => {
       if (!room) return;
 
       const { banPick, playerOrder } = room;
-      const [p1] = playerOrder; // ✅ FIX: use playerOrder
+      const [p1] = playerOrder; 
 
       if (banPick.phase !== 'pick' || socket.id !== p1) {
         console.log(`Pick rejected — not ${socket.id}'s turn or wrong phase`);
@@ -145,7 +163,7 @@ const initSocket = (io) => {
       if (!room || !room.gameActive) return;
 
       const { currentCategory, currentQuestionIndex, questionsForServer, playerOrder } = room;
-      const [p1, p2] = playerOrder; // ✅ FIX: use playerOrder
+      const [p1, p2] = playerOrder; 
       const currentQuestion = questionsForServer[currentCategory][currentQuestionIndex];
 
       // Normalize and check answer server-side — answer never leaves server

@@ -82,6 +82,14 @@ export const GameProvider = ({ children }) => {
     });
 
     socket.on('matchReady', (data) => {
+      
+      //If player is not on the waiting screen, ignore this match
+      //This keeps the game from pulling the player back into a match if they chose to leave
+      if (screen !== 'waiting') {
+        console.log('[Socket] Ignoring matchReady, no longer waiting');
+        return;
+      }
+      
       console.log('[Socket] Event: matchReady', data);
       setRoomInfo({
         roomId: data.roomId,
@@ -304,6 +312,17 @@ export const GameProvider = ({ children }) => {
     setScreen('playing');
   }, [fetchNextSoloQuestion]);
 
+  // Cancel match finding
+  const cancelSearch = useCallback(() => {
+    console.log('[Game] Canceling search...');
+    
+    if (socket && socket.connected) {
+      socket.emit('leaveMatchup');
+    }
+
+    resetGame();
+  }, [socket, resetGame]);
+
   const value = {
     socket, screen, setScreen,
     gameMode, setGameMode,
@@ -315,6 +334,7 @@ export const GameProvider = ({ children }) => {
     questionIndex, timeLeft, setTimeLeft,
     botAnswered, setBotAnswered, botAnswerData, setBotAnswerData,
     resetGame, joinRanked, startBotGame, startPractice,
+    cancelSearch,
     handleSubmitAnswer,
     loading
   };

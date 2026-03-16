@@ -2,7 +2,7 @@ import React from 'react';
 import { useGame } from '../contexts/GameContext';
 
 function Waiting() {
-  const { playerName } = useGame();
+  const { playerName, cancelSearch } = useGame();
 
   return (
     <div className="waiting-screen">
@@ -13,6 +13,10 @@ function Waiting() {
       </div>
       <div className="matchup-line">{playerName} vs ???</div>
       <p>Searching for an opponent...</p>
+
+      <button className='mode-button' onClick={cancelSearch}>
+         Cancel Matchup...
+      </button>
     </div>
   );
 }
