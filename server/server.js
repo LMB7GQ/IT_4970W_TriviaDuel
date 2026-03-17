@@ -5,7 +5,7 @@ const cors       = require('cors');
 const mongoose   = require('mongoose');
 require('dotenv').config();
 
-const questionRoutes = require('./routes/QuestionRoutes');
+const questionRoutes = require('./routes/questionRoutes');
 const initSocket     = require('./socket/matchSocket');
 
 const app    = express();
