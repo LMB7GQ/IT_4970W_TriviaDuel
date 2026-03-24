@@ -1,0 +1,55 @@
+const Question = require('../models/question');
+const CATEGORIES = require('../constants/categories');
+
+/**
+ * Picks `count` random unique categories from the master list.
+ */
+const getRandomCategories = (count = 5) => {
+  const shuffled = [...CATEGORIES].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, count);
+};
+
+/**
+ * Fetches `questionsPerCategory` questions for each category.
+ *
+ * Returns two separate objects:
+ *  - questionsForClient  → answers stripped out (safe to send to frontend)
+ *  - questionsForServer  → full documents including answers (stays in room object)
+ *
+ * Difficulty is hardcoded to 'medium' until rank logic is finalised.
+ */
+const fetchMatchQuestions = async (categories, questionsPerCategory = 3) => {
+  const questionsForClient = {};
+  const questionsForServer = {};
+
+  await Promise.all(
+    categories.map(async (category) => {
+      const docs = await Question.aggregate([
+        { $match: { category, difficulty: 'medium' } },
+        { $sample: { size: questionsPerCategory } },
+      ]);
+
+      // Increment timesUsed for all fetched questions
+      if (docs.length > 0) {
+        const ids = docs.map((q) => q._id);
+        await Question.updateMany({ _id: { $in: ids } }, { $inc: { timesUsed: 1 } });
+      }
+
+      // Server copy — full document including answer
+      questionsForServer[category] = docs;
+
+      // Client copy — answer stripped out
+      questionsForClient[category] = docs.map(({ _id, question, category, difficulty, timesUsed }) => ({
+        _id,
+        question,
+        category,
+        difficulty,
+        timesUsed,
+      }));
+    })
+  );
+
+  return { questionsForClient, questionsForServer };
+};
+
+module.exports = { getRandomCategories, fetchMatchQuestions };
