@@ -1,12 +1,17 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 import ModeCard from '../components/ModeCard';
+import InviteModal from '../components/InviteModal';
+import InviteNotification from '../components/InviteNotification';
 
 function ModeSelect() {
-  const { playerName, setScreen, startPractice, startBotGame, joinRanked } = useGame();
+  const { playerName, logout, startPractice, startBotGame, joinRanked, isAuthenticated } = useGame();
+  const [showInviteModal, setShowInviteModal] = useState(false);
 
   return (
     <div className="join-section">
+      <InviteNotification />
+      
       <h2>Welcome, {playerName}</h2>
       <p>Choose your duel mode.</p>
       
@@ -20,13 +25,30 @@ function ModeSelect() {
         description="Compete against an adaptive AI bot." 
         onClick={startBotGame} 
       />
-      <ModeCard 
-        title="Ranked Match" 
-        description="Compete against other players for ranking." 
-        onClick={joinRanked} 
-      />
+      {isAuthenticated && (
+        <ModeCard 
+          title="Ranked Match" 
+          description="Compete against other players for ranking." 
+          onClick={joinRanked} 
+        />
+      )}
 
-      <button onClick={() => setScreen('login')} style={{marginTop: '20px'}}>Log Out</button>
+      {isAuthenticated && (
+        <button 
+          className="invite-button" 
+          onClick={() => setShowInviteModal(true)}
+          style={{marginTop: '10px'}}
+        >
+          Send Invite
+        </button>
+      )}
+
+      <button onClick={logout} style={{marginTop: '20px'}}>Log Out</button>
+
+      <InviteModal 
+        isOpen={showInviteModal} 
+        onClose={() => setShowInviteModal(false)} 
+      />
     </div>
   );
 }

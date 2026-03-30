@@ -7,6 +7,8 @@ import Waiting from './pages/Waiting';
 import BanPick from './pages/BanPick';
 import Playing from './pages/Playing';
 import Finished from './pages/Finished';
+import InviteNotification from './components/InviteNotification';
+import ChatPanel from './components/ChatPanel';
 import './App.css';
 
 function App() {
@@ -15,6 +17,10 @@ function App() {
   return (
     <div className="app-container">
       <div className="title-box">Trivia Duel</div>
+
+      {/* Global components */}
+      <InviteNotification />
+      <ChatPanel />
 
       {screen === 'login' && <Login />}
       {screen === 'signup' && <Signup />}

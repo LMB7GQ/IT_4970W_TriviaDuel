@@ -6,8 +6,9 @@ const mongoose   = require('mongoose');
 require('dotenv').config();
 
 const questionRoutes = require('./routes/questionRoutes');
+const authRoutes     = require('./routes/authRoutes');
 const initSocket     = require('./socket/matchSocket');
-
+const { socketAuth } = require('./middleware/auth');
 const app    = express();
 const server = http.createServer(app);
 const io     = socketIo(server, {
@@ -33,9 +34,11 @@ app.use(cors());
 app.use(express.json());
 
 // ── REST Routes ─────────────────────────────────────────────────
+app.use('/api/auth',      authRoutes);
 app.use('/api/questions', questionRoutes);
 
 // ── Socket.io ───────────────────────────────────────────────────
+io.use(socketAuth);
 initSocket(io);
 
 // ── Boot ────────────────────────────────────────────────────────

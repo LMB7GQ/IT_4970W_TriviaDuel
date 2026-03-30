@@ -12,6 +12,17 @@ export const GameProvider = ({ children }) => {
 
   const [playerName, setPlayerName] = useState('');
   const [playerRank] = useState(1000);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+
+  // Set initial screen based on authentication
+  useEffect(() => {
+    if (isAuthenticated) {
+      setScreen('modeSelect');
+    } else {
+      setScreen('login');
+    }
+  }, [isAuthenticated]);
 
   const [roomInfo, setRoomInfo] = useState(null);
   const [banPick, setBanPick] = useState(null);
@@ -29,12 +40,21 @@ export const GameProvider = ({ children }) => {
   const [botAnswerData, setBotAnswerData] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Invite/Chat state
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
+  const [onlineUsers, setOnlineUsers] = useState([]);
+
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io('http://localhost:5000', {
+      auth: {
+        token: token
+      }
+    });
     setSocket(newSocket);
     console.log('[Socket] Initialized connection to http://localhost:5000');
     return () => newSocket.disconnect();
-  }, []);
+  }, [token]);
 
   const fetchNextSoloQuestion = useCallback(async () => {
     try {
@@ -71,6 +91,8 @@ export const GameProvider = ({ children }) => {
     setBotAnswered(false);
     setBotAnswerData(null);
     setLoading(false);
+    setPendingInvites([]);
+    setChatMessages([]);
   }, []);
 
   useEffect(() => {
@@ -83,14 +105,23 @@ export const GameProvider = ({ children }) => {
 
     socket.on('matchReady', (data) => {
       
-      //If player is not on the waiting screen, ignore this match
-      //This keeps the game from pulling the player back into a match if they chose to leave
-      if (screen !== 'waiting') {
-        console.log('[Socket] Ignoring matchReady, no longer waiting');
+      // If player is not on waiting screen and not on modeSelect (for invites), ignore
+      if (screen !== 'waiting' && screen !== 'modeSelect') {
+        console.log('[Socket] Ignoring matchReady, not in valid state (screen:', screen, ')');
         return;
       }
       
       console.log('[Socket] Event: matchReady', data);
+      
+      // If accepting an invite (on modeSelect), set game mode to ranked
+      if (screen === 'modeSelect') {
+        setGameMode('ranked');
+      }
+      
+      // Clear any pending invites and chat messages since we're starting a new match
+      setPendingInvites([]);
+      setChatMessages([]);
+      
       setRoomInfo({
         roomId: data.roomId,
         myId: data.myId,
@@ -126,6 +157,16 @@ export const GameProvider = ({ children }) => {
       setRoundResults(data.results);
       setMyResult(null);
 
+      // Update roomInfo with categoryResults if provided
+      if (data.categoryResults) {
+        setRoomInfo(prev => prev ? { ...prev, categoryResults: data.categoryResults } : null);
+      }
+
+      // Update banPick if provided (for transitioning back to ban/pick phase)
+      if (data.banPick) {
+        setBanPick(data.banPick);
+      }
+
       if (roomInfo?.myId && data.results[roomInfo.myId]) {
         setPlayerScore(data.results[roomInfo.myId].score);
       }
@@ -144,6 +185,15 @@ export const GameProvider = ({ children }) => {
           setRoundResults(null);
           setTimeLeft(15);
         }, 2000);
+      } else {
+        // Category is done but match continues - go back to ban/pick
+        console.log('[Socket] Category completed, returning to ban/pick phase');
+        setTimeout(() => {
+          // banPick should already be set by the server in the roundResults event
+          setCurrentQuestion(null);
+          setRoundResults(null);
+          setScreen('banPick');
+        }, 2000);
       }
     });
 
@@ -151,6 +201,38 @@ export const GameProvider = ({ children }) => {
       console.log('[Socket] Event: opponentDisconnected', data);
       alert(data.message || 'Opponent disconnected');
       resetGame();
+    });
+
+    // Invite events
+    socket.on('inviteReceived', (data) => {
+      console.log('[Socket] Event: inviteReceived', data);
+      setPendingInvites(prev => [...prev, data]);
+    });
+
+    socket.on('inviteSent', (data) => {
+      console.log('[Socket] Event: inviteSent', data);
+      // Could show confirmation message
+    });
+
+    socket.on('inviteExpired', (data) => {
+      console.log('[Socket] Event: inviteExpired', data);
+      setPendingInvites(prev => prev.filter(invite => invite.inviteId !== data.inviteId));
+    });
+
+    socket.on('inviteDeclined', (data) => {
+      console.log('[Socket] Event: inviteDeclined', data);
+      // Could show message that invite was declined
+    });
+
+    socket.on('inviteError', (data) => {
+      console.log('[Socket] Event: inviteError', data);
+      alert(data.message);
+    });
+
+    // Chat events
+    socket.on('newMessage', (data) => {
+      console.log('[Socket] Event: newMessage', data);
+      setChatMessages(prev => [...prev, data]);
     });
 
     return () => {
@@ -161,6 +243,12 @@ export const GameProvider = ({ children }) => {
       socket.off('answerAcknowledged');
       socket.off('roundResults');
       socket.off('opponentDisconnected');
+      socket.off('inviteReceived');
+      socket.off('inviteSent');
+      socket.off('inviteExpired');
+      socket.off('inviteDeclined');
+      socket.off('inviteError');
+      socket.off('newMessage');
     };
   }, [socket, roomInfo, resetGame]);
 
@@ -289,12 +377,12 @@ export const GameProvider = ({ children }) => {
   }, [screen, gameMode, currentQuestion, playerRank, loading]);
 
   const joinRanked = useCallback(() => {
-    if (!playerName.trim() || !socket) return;
+    if (!playerName.trim() || !socket || !isAuthenticated) return;
     console.log('[Socket] Emitting joinGame:', playerName, playerRank);
     setGameMode('ranked');
     socket.emit('joinGame', { playerName, rank: playerRank });
     setScreen('waiting');
-  }, [playerName, socket, playerRank]);
+  }, [playerName, socket, playerRank, isAuthenticated]);
 
   const startBotGame = useCallback(async () => {
     console.log('[Game] Starting Bot Duel');
@@ -323,11 +411,96 @@ export const GameProvider = ({ children }) => {
     resetGame();
   }, [socket, resetGame]);
 
+  // Invite functions
+  const sendInvite = useCallback((toUsername) => {
+    if (!socket || !isAuthenticated) return;
+    console.log('[Socket] Emitting sendInvite:', toUsername);
+    socket.emit('sendInvite', { toUsername });
+  }, [socket, isAuthenticated]);
+
+  const acceptInvite = useCallback((inviteId) => {
+    if (!socket) return;
+    console.log('[Socket] Emitting acceptInvite:', inviteId);
+    socket.emit('acceptInvite', { inviteId });
+    setPendingInvites(prev => prev.filter(invite => invite.inviteId !== inviteId));
+  }, [socket]);
+
+  const declineInvite = useCallback((inviteId) => {
+    if (!socket) return;
+    console.log('[Socket] Emitting declineInvite:', inviteId);
+    socket.emit('declineInvite', { inviteId });
+    setPendingInvites(prev => prev.filter(invite => invite.inviteId !== inviteId));
+  }, [socket]);
+
+  // Chat functions
+  const sendMessage = useCallback((message) => {
+    if (!socket || !roomInfo?.roomId) return;
+    console.log('[Socket] Emitting sendMessage:', message);
+    socket.emit('sendMessage', { roomId: roomInfo.roomId, message });
+  }, [socket, roomInfo]);
+
+  // Auth functions
+  const login = useCallback(async (username, password) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setToken(data.token);
+        setPlayerName(username);
+        setIsAuthenticated(true);
+        localStorage.setItem('token', data.token);
+        setScreen('modeSelect');
+        return { success: true };
+      } else {
+        return { success: false, message: data.error };
+      }
+    } catch (err) {
+      return { success: false, message: 'Network error' };
+    }
+  }, []);
+
+  const signup = useCallback(async (username, password) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setToken(data.token);
+        setPlayerName(username);
+        setIsAuthenticated(true);
+        localStorage.setItem('token', data.token);
+        setScreen('modeSelect');
+        return { success: true };
+      } else {
+        return { success: false, message: data.error };
+      }
+    } catch (err) {
+      return { success: false, message: 'Network error' };
+    }
+  }, []);
+
+  const logout = useCallback(() => {
+    setToken(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('token');
+    setPlayerName('');
+    resetGame();
+    setScreen('login');
+  }, [resetGame]);
+
   const value = {
     socket, screen, setScreen,
     gameMode, setGameMode,
     playerName, setPlayerName,
-    playerRank, roomInfo, banPick,
+    playerRank, token, isAuthenticated,
+    roomInfo, banPick,
     currentQuestion, userAnswer, setUserAnswer,
     roundResults, myResult,
     playerScore, opponentScore,
@@ -335,6 +508,11 @@ export const GameProvider = ({ children }) => {
     botAnswered, setBotAnswered, botAnswerData, setBotAnswerData,
     resetGame, joinRanked, startBotGame, startPractice,
     cancelSearch,
+    // Invite/chat
+    pendingInvites, sendInvite, acceptInvite, declineInvite,
+    chatMessages, sendMessage,
+    // Auth
+    login, signup, logout,
     handleSubmitAnswer,
     loading
   };
