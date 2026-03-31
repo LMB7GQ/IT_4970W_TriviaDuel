@@ -6,6 +6,7 @@ const mongoose   = require('mongoose');
 require('dotenv').config();
 
 const questionRoutes = require('./routes/questionRoutes');
+const userRoutes = require('./routes/userRoutes');
 const initSocket     = require('./socket/matchSocket');
 
 const app    = express();
@@ -34,6 +35,7 @@ app.use(express.json());
 
 // ── REST Routes ─────────────────────────────────────────────────
 app.use('/api/questions', questionRoutes);
+app.use('/api/users', userRoutes);
 
 // ── Socket.io ───────────────────────────────────────────────────
 initSocket(io);

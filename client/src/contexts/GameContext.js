@@ -30,9 +30,9 @@ export const GameProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io('http://localhost:5001');
     setSocket(newSocket);
-    console.log('[Socket] Initialized connection to http://localhost:5000');
+    console.log('[Socket] Initialized connection to http://localhost:5001');
     return () => newSocket.disconnect();
   }, []);
 
@@ -40,7 +40,7 @@ export const GameProvider = ({ children }) => {
     try {
       setLoading(true);
       console.log(`[Solo] Fetching next question (Rank: ${playerRank})...`);
-      const response = await fetch(`http://localhost:5000/api/questions/random?rank=${playerRank}`);
+      const response = await fetch(`http://localhost:5001/api/questions/random?rank=${playerRank}`);
       if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
       console.log('[Solo] Fetched Question:', data._id, data.question);
@@ -184,7 +184,7 @@ export const GameProvider = ({ children }) => {
     let correctAnswer = '';
     try {
       console.log(`[Solo] Validating answer for question ${currentQuestion._id}...`);
-      const resp = await fetch(`http://localhost:5000/api/questions/${currentQuestion._id}/check`, {
+      const resp = await fetch(`http://localhost:5001/api/questions/${currentQuestion._id}/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userAnswer: submittedAnswer })
