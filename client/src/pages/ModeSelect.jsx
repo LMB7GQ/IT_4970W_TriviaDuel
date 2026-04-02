@@ -5,7 +5,7 @@ import InviteModal from '../components/InviteModal';
 import InviteNotification from '../components/InviteNotification';
 
 function ModeSelect() {
-  const { playerName, logout, startPractice, startBotGame, joinRanked, isAuthenticated } = useGame();
+  const { playerName, setScreen, logout, startPractice, startBotGame, joinRanked, isAuthenticated } = useGame();
   const [showInviteModal, setShowInviteModal] = useState(false);
 
   return (
@@ -34,14 +34,25 @@ function ModeSelect() {
       )}
 
       {isAuthenticated && (
-        <button 
-          className="invite-button" 
-          onClick={() => setShowInviteModal(true)}
-          style={{marginTop: '10px'}}
-        >
-          Send Invite
-        </button>
+        <div style={{ display: 'flex', gap: '10px', marginTop: '10px', justifyContent: 'center', alignItems: 'flex-start' }}>
+          <button 
+            className="invite-button" 
+            onClick={() => setShowInviteModal(true)}
+            style={{margin: 0, flex: 1, maxWidth: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '44px' }}
+          >
+            Send Invite
+          </button>
+          <button
+            className="invite-button"
+            onClick={() => setScreen('userProfile')}
+            style={{margin: 0, flex: 1, maxWidth: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '44px' }}
+          >
+            User Profile
+          </button>
+
+        </div>
       )}
+
 
       <button onClick={logout} style={{marginTop: '20px'}}>Log Out</button>
 

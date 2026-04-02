@@ -14,6 +14,7 @@ export const GameProvider = ({ children }) => {
   const [playerRank] = useState(1000);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+  const [userData, setUserData] = useState(null);
 
   // Set initial screen based on authentication
   useEffect(() => {
@@ -451,6 +452,7 @@ export const GameProvider = ({ children }) => {
       if (response.ok) {
         setToken(data.token);
         setPlayerName(username);
+        setUserData(data.user);
         setIsAuthenticated(true);
         localStorage.setItem('token', data.token);
         setScreen('modeSelect');
@@ -474,6 +476,7 @@ export const GameProvider = ({ children }) => {
       if (response.ok) {
         setToken(data.token);
         setPlayerName(username);
+        setUserData(data.user);
         setIsAuthenticated(true);
         localStorage.setItem('token', data.token);
         setScreen('modeSelect');
@@ -485,6 +488,28 @@ export const GameProvider = ({ children }) => {
       return { success: false, message: 'Network error' };
     }
   }, []);
+
+  const fetchUserData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setUserData(data.user);
+        setPlayerName(data.user.username);
+      }
+    } catch (err) {
+      console.error("Fetch user data error:", err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      fetchUserData();
+    }
+  }, [isAuthenticated, token, fetchUserData]);
 
   const logout = useCallback(() => {
     setToken(null);
@@ -514,6 +539,8 @@ export const GameProvider = ({ children }) => {
     // Auth
     login, signup, logout,
     handleSubmitAnswer,
+    userData,
+    fetchUserData,
     loading
   };
 
