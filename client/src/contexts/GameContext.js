@@ -46,9 +46,9 @@ export const GameProvider = ({ children }) => {
   const [categoryWinnerName, setCategoryWinnerName] = useState(null);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5001');
+    const newSocket = io('http://localhost:5000');
     setSocket(newSocket);
-    console.log('[Socket] Initialized connection to http://localhost:5001');
+    console.log('[Socket] Initialized connection to http://localhost:5000');
     return () => newSocket.disconnect();
   }, [token]);
 
@@ -56,7 +56,7 @@ export const GameProvider = ({ children }) => {
     try {
       setLoading(true);
       console.log(`[Solo] Fetching next question (Rank: ${playerRank})...`);
-      const response = await fetch(`http://localhost:5001/api/questions/random?rank=${playerRank}`);
+      const response = await fetch(`http://localhost:5000/api/questions/random?rank=${playerRank}`);
       if (!response.ok) throw new Error('Failed to fetch');
       const data = await response.json();
       console.log('[Solo] Fetched Question:', data._id, data.question);

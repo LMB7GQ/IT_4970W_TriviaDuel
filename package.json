@@ -17,5 +17,9 @@
   "bugs": {
     "url": "https://github.com/LMB7GQ/IT_4970W_TriviaDuel/issues"
   },
-  "homepage": "https://github.com/LMB7GQ/IT_4970W_TriviaDuel#readme"
+  "homepage": "https://github.com/LMB7GQ/IT_4970W_TriviaDuel#readme",
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "jsonwebtoken": "^9.0.3"
+  }
 }
