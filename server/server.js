@@ -6,7 +6,7 @@ const mongoose   = require('mongoose');
 require('dotenv').config();
 
 const questionRoutes = require('./routes/questionRoutes');
-const authRoutes     = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 const initSocket     = require('./socket/matchSocket');
 const { socketAuth } = require('./middleware/auth');
 const app    = express();
@@ -36,6 +36,7 @@ app.use(express.json());
 // ── REST Routes ─────────────────────────────────────────────────
 app.use('/api/auth',      authRoutes);
 app.use('/api/questions', questionRoutes);
+app.use('/api/users', userRoutes);
 
 // ── Socket.io ───────────────────────────────────────────────────
 io.use(socketAuth);

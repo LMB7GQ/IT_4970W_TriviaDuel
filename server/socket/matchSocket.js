@@ -1,4 +1,5 @@
 const { getRandomCategories, fetchMatchQuestions } = require('../scripts/matchUtils');
+const User = require('../models/user');
 
 // ── In-memory state ─────────────────────────────────────────────
 const waitingPlayers  = [];
@@ -76,9 +77,16 @@ const initSocket = (io) => {
 
     // ── joinGame ──────────────────────────────────────────────
     socket.on('joinGame', async ({ playerName, rank = 500 }) => {
-      // Use authenticated username if available, fall back to provided name
-      const name = socket.data.user?.username || playerName;
-      const playerRank = socket.data.user?.rank || rank;
+      // Use stored rank from User DB if player exists; otherwise use passed rank
+      let effectiveRank = rank;
+      if (playerName && typeof playerName === 'string') {
+        try {
+          const user = await User.findOne({ username: playerName.trim() });
+          if (user) effectiveRank = user.rank;
+        } catch (_) { /* ignore */ }
+      }
+
+      console.log(`${playerName} (rank: ${effectiveRank}) is joining...`);
 
       console.log(`${name} (rank: ${playerRank}) is joining...`);
 
@@ -86,7 +94,7 @@ const initSocket = (io) => {
       const existingIndex = waitingPlayers.findIndex(p => p.socketId === socket.id);
       if (existingIndex !== -1) waitingPlayers.splice(existingIndex, 1);
 
-      waitingPlayers.push({ socketId: socket.id, name, rank: playerRank });
+      waitingPlayers.push({ socketId: socket.id, name: playerName, rank: effectiveRank }); //waitingPlayers is an array, this pushes player info into this "waiting list"
 
       if (waitingPlayers.length >= 2) {
         const player1 = waitingPlayers.shift();
@@ -390,18 +398,35 @@ const initSocket = (io) => {
           if (matchWinner) {
             room.gameActive = false;
             console.log(`Match over — winner: ${room.players[matchWinner].name}`);
-          } else {
-            // Match continues - reset ban/pick for next round
-            room.banPick = {
-              bans: [],
-              pick: null,
-              phase: 'ban1',
-              turn: playerOrder[0], // Start with player1 again
+
+            // Persist wins/losses to User collection (by username)
+            const winnerName = room.players[matchWinner].name;
+            const loserId = playerOrder.find((pid) => pid !== matchWinner);
+            const loserName = loserId ? room.players[loserId].name : null;
+
+            const updateUserStats = async (username, isWinner) => {
+              try {
+                let user = await User.findOne({ username });
+                if (!user) {
+                  user = await User.create({ username, rank: 1000 });
+                }
+                if (isWinner) {
+                  user.wins += 1;
+                  user.streak += 1;
+                  user.rank = Math.min(3000, user.rank + 25);
+                } else {
+                  user.losses += 1;
+                  user.streak = 0;
+                  user.rank = Math.max(100, user.rank - 25);
+                }
+                await user.save();
+              } catch (err) {
+                console.error(`Failed to update user ${username}:`, err.message);
+              }
             };
-            room.currentCategory = null;
-            room.currentQuestionIndex = 0;
-            room.roundAnswers = {};
-            console.log('Match continues - resetting ban/pick phase');
+
+            if (winnerName) updateUserStats(winnerName, true);
+            if (loserName) updateUserStats(loserName, false);
           }
 
           io.to(roomId).emit('roundResults', {

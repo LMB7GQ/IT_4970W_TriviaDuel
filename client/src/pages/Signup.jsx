@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 
+const API_URL = 'http://localhost:5001';
+
 function Signup() {
   const { signup, setScreen } = useGame();
   const [username, setUsername] = useState('');
@@ -18,43 +20,48 @@ function Signup() {
       setMessage('Passwords do not match.');
       return;
     }
-    setLoading(true);
+    if (password.length < 4) {
+      setMessage('Password must be at least 4 characters.');
+      return;
+    }
     setMessage('');
-    const result = await signup(username.trim(), password);
-    setLoading(false);
-    if (!result.success) {
-      setMessage(result.message);
+    setLoading(true);
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const res = await fetch(`${API_URL}/api/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username.trim(), password }),
+        signal: controller.signal,
+      });
+      clearTimeout(timeoutId);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setMessage(data.error || 'Signup failed');
+        return;
+      }
+      setPlayerName(data.username);
+      setScreen('modeSelect');
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        setMessage('Request timed out. Is the server running on port 5001?');
+      } else {
+        setMessage('Connection error. Is the server running?');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="join-section">
       <h2>Create Account</h2>
-      <input 
-        type="text" 
-        placeholder="Username" 
-        value={username} 
-        onChange={(e) => setUsername(e.target.value)} 
-        disabled={loading}
-      />
-      <input 
-        type="password" 
-        placeholder="Password" 
-        value={password} 
-        onChange={(e) => setPassword(e.target.value)} 
-        disabled={loading}
-      />
-      <input 
-        type="password" 
-        placeholder="Confirm Password" 
-        value={confirm} 
-        onChange={(e) => setConfirm(e.target.value)} 
-        disabled={loading}
-      />
-      <button onClick={handleSignup} disabled={loading}>
-        {loading ? 'Creating Account...' : 'Create Account'}
-      </button>
-      <button onClick={() => setScreen('login')} disabled={loading}>Back to Login</button>
+      <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
+      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+      <input type="password" placeholder="Confirm Password" value={confirm} onChange={(e) => setConfirm(e.target.value)} />
+      <button onClick={handleSignup} disabled={loading}>{loading ? 'Creating...' : 'Create Account'}</button>
+      <button onClick={() => setScreen('login')}>Back to Login</button>
       {message && <p className="form-message">{message}</p>}
     </div>
   );
