@@ -12,6 +12,18 @@ export const GameProvider = ({ children }) => {
 
   const [playerName, setPlayerName] = useState('');
   const [playerRank] = useState(1000);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+  const [userData, setUserData] = useState(null);
+
+  // Set initial screen based on authentication
+  useEffect(() => {
+    if (isAuthenticated) {
+      setScreen('modeSelect');
+    } else {
+      setScreen('login');
+    }
+  }, [isAuthenticated]);
 
   const [roomInfo, setRoomInfo] = useState(null);
   const [banPick, setBanPick] = useState(null);
@@ -38,7 +50,7 @@ export const GameProvider = ({ children }) => {
     setSocket(newSocket);
     console.log('[Socket] Initialized connection to http://localhost:5001');
     return () => newSocket.disconnect();
-  }, []);
+  }, [token]);
 
   const fetchNextSoloQuestion = useCallback(async () => {
     try {
@@ -95,6 +107,16 @@ export const GameProvider = ({ children }) => {
       }
 
       console.log('[Socket] Event: matchReady', data);
+      
+      // If accepting an invite (on modeSelect), set game mode to ranked
+      if (screen === 'modeSelect') {
+        setGameMode('ranked');
+      }
+      
+      // Clear any pending invites and chat messages since we're starting a new match
+      setPendingInvites([]);
+      setChatMessages([]);
+      
       setRoomInfo({
         roomId: data.roomId,
         myId: data.myId,
@@ -194,6 +216,15 @@ export const GameProvider = ({ children }) => {
           setTimeLeft(15);
           setCategoryWinnerName(null);
         }, 2000);
+      } else {
+        // Category is done but match continues - go back to ban/pick
+        console.log('[Socket] Category completed, returning to ban/pick phase');
+        setTimeout(() => {
+          // banPick should already be set by the server in the roundResults event
+          setCurrentQuestion(null);
+          setRoundResults(null);
+          setScreen('banPick');
+        }, 2000);
       }
     });
 
@@ -207,6 +238,38 @@ export const GameProvider = ({ children }) => {
       setTimeout(() => setScreen('finished'), 500);
     });
 
+    // Invite events
+    socket.on('inviteReceived', (data) => {
+      console.log('[Socket] Event: inviteReceived', data);
+      setPendingInvites(prev => [...prev, data]);
+    });
+
+    socket.on('inviteSent', (data) => {
+      console.log('[Socket] Event: inviteSent', data);
+      // Could show confirmation message
+    });
+
+    socket.on('inviteExpired', (data) => {
+      console.log('[Socket] Event: inviteExpired', data);
+      setPendingInvites(prev => prev.filter(invite => invite.inviteId !== data.inviteId));
+    });
+
+    socket.on('inviteDeclined', (data) => {
+      console.log('[Socket] Event: inviteDeclined', data);
+      // Could show message that invite was declined
+    });
+
+    socket.on('inviteError', (data) => {
+      console.log('[Socket] Event: inviteError', data);
+      alert(data.message);
+    });
+
+    // Chat events
+    socket.on('newMessage', (data) => {
+      console.log('[Socket] Event: newMessage', data);
+      setChatMessages(prev => [...prev, data]);
+    });
+
     return () => {
       socket.off('waiting');
       socket.off('matchReady');
@@ -215,6 +278,12 @@ export const GameProvider = ({ children }) => {
       socket.off('answerAcknowledged');
       socket.off('roundResults');
       socket.off('opponentDisconnected');
+      socket.off('inviteReceived');
+      socket.off('inviteSent');
+      socket.off('inviteExpired');
+      socket.off('inviteDeclined');
+      socket.off('inviteError');
+      socket.off('newMessage');
     };
   }, [socket, roomInfo, resetGame, screen, playerName]);
 
@@ -379,14 +448,14 @@ export const GameProvider = ({ children }) => {
   }, [screen, gameMode, currentQuestion, playerRank, loading]);
 
   const joinRanked = useCallback(() => {
-    if (!playerName.trim() || !socket) return;
+    if (!playerName.trim() || !socket || !isAuthenticated) return;
     console.log('[Socket] Emitting joinGame:', playerName, playerRank);
     setGameMode('ranked');
     setMatchResult(null);
     setFinishReason('normal');
     socket.emit('joinGame', { playerName, rank: playerRank });
     setScreen('waiting');
-  }, [playerName, socket, playerRank]);
+  }, [playerName, socket, playerRank, isAuthenticated]);
 
   const startBotGame = useCallback(async () => {
     console.log('[Game] Starting Bot Duel');
@@ -432,6 +501,114 @@ export const GameProvider = ({ children }) => {
     resetGame();
   }, [socket, resetGame]);
 
+  // Invite functions
+  const sendInvite = useCallback((toUsername) => {
+    if (!socket || !isAuthenticated) return;
+    console.log('[Socket] Emitting sendInvite:', toUsername);
+    socket.emit('sendInvite', { toUsername });
+  }, [socket, isAuthenticated]);
+
+  const acceptInvite = useCallback((inviteId) => {
+    if (!socket) return;
+    console.log('[Socket] Emitting acceptInvite:', inviteId);
+    socket.emit('acceptInvite', { inviteId });
+    setPendingInvites(prev => prev.filter(invite => invite.inviteId !== inviteId));
+  }, [socket]);
+
+  const declineInvite = useCallback((inviteId) => {
+    if (!socket) return;
+    console.log('[Socket] Emitting declineInvite:', inviteId);
+    socket.emit('declineInvite', { inviteId });
+    setPendingInvites(prev => prev.filter(invite => invite.inviteId !== inviteId));
+  }, [socket]);
+
+  // Chat functions
+  const sendMessage = useCallback((message) => {
+    if (!socket || !roomInfo?.roomId) return;
+    console.log('[Socket] Emitting sendMessage:', message);
+    socket.emit('sendMessage', { roomId: roomInfo.roomId, message });
+  }, [socket, roomInfo]);
+
+  // Auth functions
+  const login = useCallback(async (username, password) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setToken(data.token);
+        setPlayerName(username);
+        setUserData(data.user);
+        setIsAuthenticated(true);
+        localStorage.setItem('token', data.token);
+        setScreen('modeSelect');
+        return { success: true };
+      } else {
+        return { success: false, message: data.error };
+      }
+    } catch (err) {
+      return { success: false, message: 'Network error' };
+    }
+  }, []);
+
+  const signup = useCallback(async (username, password) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setToken(data.token);
+        setPlayerName(username);
+        setUserData(data.user);
+        setIsAuthenticated(true);
+        localStorage.setItem('token', data.token);
+        setScreen('modeSelect');
+        return { success: true };
+      } else {
+        return { success: false, message: data.error };
+      }
+    } catch (err) {
+      return { success: false, message: 'Network error' };
+    }
+  }, []);
+
+  const fetchUserData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setUserData(data.user);
+        setPlayerName(data.user.username);
+      }
+    } catch (err) {
+      console.error("Fetch user data error:", err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      fetchUserData();
+    }
+  }, [isAuthenticated, token, fetchUserData]);
+
+  const logout = useCallback(() => {
+    setToken(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('token');
+    setPlayerName('');
+    resetGame();
+    setScreen('login');
+  }, [resetGame]);
+
   const value = {
     socket,
     screen,
@@ -462,6 +639,11 @@ export const GameProvider = ({ children }) => {
     startBotGame,
     startPractice,
     cancelSearch,
+    // Invite/chat
+    pendingInvites, sendInvite, acceptInvite, declineInvite,
+    chatMessages, sendMessage,
+    // Auth
+    login, signup, logout,
     handleSubmitAnswer,
     loading,
     matchResult,
