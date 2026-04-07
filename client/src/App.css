@@ -284,3 +284,80 @@ body {
   border: 1px solid #b22222;
   color: #ff6347;
 }
+.finished-screen {
+  animation: fadeInUp 0.6s ease;
+}
+
+.result-title {
+  font-size: 2.6rem;
+  margin-bottom: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+.result-message {
+  font-size: 1.1rem;
+  margin-bottom: 24px;
+  color: #f5e6c8;
+}
+
+.finished-screen.win .result-title {
+  color: #6ee7b7;
+  text-shadow: 0 0 18px rgba(110, 231, 183, 0.35);
+}
+
+.finished-screen.loss .result-title {
+  color: #f87171;
+  text-shadow: 0 0 18px rgba(248, 113, 113, 0.35);
+}
+
+.finished-screen.draw .result-title {
+  color: #facc15;
+  text-shadow: 0 0 18px rgba(250, 204, 21, 0.35);
+}
+
+.finished-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 24px;
+}
+
+.finished-buttons button {
+  background: linear-gradient(180deg, #8b6a2b, #5a3e12);
+  color: #f9e7b3;
+  border: 2px solid #d4af37;
+  border-radius: 12px;
+  padding: 12px 22px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.finished-buttons button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+}
+
+.category-winner-banner {
+  margin-top: 14px;
+  padding: 10px 16px;
+  border: 2px solid #d4af37;
+  border-radius: 12px;
+  background: rgba(0, 0, 0, 0.35);
+  color: #f9e7b3;
+  font-weight: bold;
+  display: inline-block;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
