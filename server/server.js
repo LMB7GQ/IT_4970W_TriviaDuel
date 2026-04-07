@@ -8,7 +8,7 @@ require('dotenv').config();
 const questionRoutes = require('./routes/questionRoutes');
 const userRoutes = require('./routes/userRoutes');
 const initSocket     = require('./socket/matchSocket');
-
+const { socketAuth } = require('./middleware/auth');
 const app    = express();
 const server = http.createServer(app);
 const io     = socketIo(server, {
@@ -34,10 +34,12 @@ app.use(cors());
 app.use(express.json());
 
 // ── REST Routes ─────────────────────────────────────────────────
+app.use('/api/auth',      authRoutes);
 app.use('/api/questions', questionRoutes);
 app.use('/api/users', userRoutes);
 
 // ── Socket.io ───────────────────────────────────────────────────
+io.use(socketAuth);
 initSocket(io);
 
 // ── Boot ────────────────────────────────────────────────────────

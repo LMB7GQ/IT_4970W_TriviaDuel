@@ -12,6 +12,18 @@ export const GameProvider = ({ children }) => {
 
   const [playerName, setPlayerName] = useState('');
   const [playerRank] = useState(1000);
+  const [token, setToken] = useState(localStorage.getItem('token') || null);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!token);
+  const [userData, setUserData] = useState(null);
+
+  // Set initial screen based on authentication
+  useEffect(() => {
+    if (isAuthenticated) {
+      setScreen('modeSelect');
+    } else {
+      setScreen('login');
+    }
+  }, [isAuthenticated]);
 
   const [roomInfo, setRoomInfo] = useState(null);
   const [banPick, setBanPick] = useState(null);
@@ -29,12 +41,16 @@ export const GameProvider = ({ children }) => {
   const [botAnswerData, setBotAnswerData] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  const [matchResult, setMatchResult] = useState(null); // 'win' | 'loss' | 'draw'
+  const [finishReason, setFinishReason] = useState('normal'); // 'normal' | 'disconnect'
+  const [categoryWinnerName, setCategoryWinnerName] = useState(null);
+
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
     setSocket(newSocket);
     console.log('[Socket] Initialized connection to http://localhost:5000');
     return () => newSocket.disconnect();
-  }, []);
+  }, [token]);
 
   const fetchNextSoloQuestion = useCallback(async () => {
     try {
@@ -48,7 +64,7 @@ export const GameProvider = ({ children }) => {
       setLoading(false);
       return data;
     } catch (err) {
-      console.error("[Solo] Fetch error:", err);
+      console.error('[Solo] Fetch error:', err);
       setLoading(false);
       return null;
     }
@@ -71,6 +87,9 @@ export const GameProvider = ({ children }) => {
     setBotAnswered(false);
     setBotAnswerData(null);
     setLoading(false);
+    setMatchResult(null);
+    setFinishReason('normal');
+    setCategoryWinnerName(null);
   }, []);
 
   useEffect(() => {
@@ -82,15 +101,22 @@ export const GameProvider = ({ children }) => {
     });
 
     socket.on('matchReady', (data) => {
-      
-      //If player is not on the waiting screen, ignore this match
-      //This keeps the game from pulling the player back into a match if they chose to leave
       if (screen !== 'waiting') {
         console.log('[Socket] Ignoring matchReady, no longer waiting');
         return;
       }
-      
+
       console.log('[Socket] Event: matchReady', data);
+      
+      // If accepting an invite (on modeSelect), set game mode to ranked
+      if (screen === 'modeSelect') {
+        setGameMode('ranked');
+      }
+      
+      // Clear any pending invites and chat messages since we're starting a new match
+      setPendingInvites([]);
+      setChatMessages([]);
+      
       setRoomInfo({
         roomId: data.roomId,
         myId: data.myId,
@@ -114,6 +140,7 @@ export const GameProvider = ({ children }) => {
       setMyResult(null);
       setScreen('playing');
       setTimeLeft(15);
+      setCategoryWinnerName(null);
     });
 
     socket.on('answerAcknowledged', (data) => {
@@ -126,16 +153,60 @@ export const GameProvider = ({ children }) => {
       setRoundResults(data.results);
       setMyResult(null);
 
-      if (roomInfo?.myId && data.results[roomInfo.myId]) {
+      if (roomInfo?.myId && data.results?.[roomInfo.myId]) {
         setPlayerScore(data.results[roomInfo.myId].score);
       }
-      const oppId = roomInfo?.myId && Object.keys(data.results).find(id => id !== roomInfo.myId);
-      if (oppId) {
+
+      const oppId =
+        roomInfo?.myId &&
+        data.results
+          ? Object.keys(data.results).find((id) => id !== roomInfo.myId)
+          : null;
+
+      if (oppId && data.results?.[oppId]) {
         setOpponentScore(data.results[oppId].score);
+      }
+
+      if (data.categoryWinner && roomInfo?.myId && data.results) {
+        const winnerName =
+          data.results[data.categoryWinner]?.name ||
+          (data.categoryWinner === roomInfo.myId
+            ? playerName
+            : roomInfo?.opponent?.name || 'Opponent');
+
+        setCategoryWinnerName(winnerName);
       }
 
       if (data.matchWinner) {
         console.log('[Socket] Match Over. Winner:', data.matchWinner);
+
+        const myFinalScore =
+          roomInfo?.myId && data.results?.[roomInfo.myId]
+            ? data.results[roomInfo.myId].score
+            : 0;
+
+        const oppFinalId =
+          roomInfo?.myId && data.results
+            ? Object.keys(data.results).find((id) => id !== roomInfo.myId)
+            : null;
+
+        const oppFinalScore =
+          oppFinalId && data.results?.[oppFinalId]
+            ? data.results[oppFinalId].score
+            : 0;
+
+        setPlayerScore(myFinalScore);
+        setOpponentScore(oppFinalScore);
+        setFinishReason('normal');
+
+        if (myFinalScore > oppFinalScore) {
+          setMatchResult('win');
+        } else if (myFinalScore < oppFinalScore) {
+          setMatchResult('loss');
+        } else {
+          setMatchResult('draw');
+        }
+
         setTimeout(() => setScreen('finished'), 2000);
       } else if (!data.categoryDone) {
         setTimeout(() => {
@@ -143,14 +214,60 @@ export const GameProvider = ({ children }) => {
           setQuestionIndex(data.questionIndex);
           setRoundResults(null);
           setTimeLeft(15);
+          setCategoryWinnerName(null);
+        }, 2000);
+      } else {
+        // Category is done but match continues - go back to ban/pick
+        console.log('[Socket] Category completed, returning to ban/pick phase');
+        setTimeout(() => {
+          // banPick should already be set by the server in the roundResults event
+          setCurrentQuestion(null);
+          setRoundResults(null);
+          setScreen('banPick');
         }, 2000);
       }
     });
 
     socket.on('opponentDisconnected', (data) => {
       console.log('[Socket] Event: opponentDisconnected', data);
-      alert(data.message || 'Opponent disconnected');
-      resetGame();
+      setFinishReason('disconnect');
+      setMatchResult('win');
+      setRoundResults(null);
+      setMyResult(null);
+      setCategoryWinnerName(null);
+      setTimeout(() => setScreen('finished'), 500);
+    });
+
+    // Invite events
+    socket.on('inviteReceived', (data) => {
+      console.log('[Socket] Event: inviteReceived', data);
+      setPendingInvites(prev => [...prev, data]);
+    });
+
+    socket.on('inviteSent', (data) => {
+      console.log('[Socket] Event: inviteSent', data);
+      // Could show confirmation message
+    });
+
+    socket.on('inviteExpired', (data) => {
+      console.log('[Socket] Event: inviteExpired', data);
+      setPendingInvites(prev => prev.filter(invite => invite.inviteId !== data.inviteId));
+    });
+
+    socket.on('inviteDeclined', (data) => {
+      console.log('[Socket] Event: inviteDeclined', data);
+      // Could show message that invite was declined
+    });
+
+    socket.on('inviteError', (data) => {
+      console.log('[Socket] Event: inviteError', data);
+      alert(data.message);
+    });
+
+    // Chat events
+    socket.on('newMessage', (data) => {
+      console.log('[Socket] Event: newMessage', data);
+      setChatMessages(prev => [...prev, data]);
     });
 
     return () => {
@@ -161,93 +278,136 @@ export const GameProvider = ({ children }) => {
       socket.off('answerAcknowledged');
       socket.off('roundResults');
       socket.off('opponentDisconnected');
+      socket.off('inviteReceived');
+      socket.off('inviteSent');
+      socket.off('inviteExpired');
+      socket.off('inviteDeclined');
+      socket.off('inviteError');
+      socket.off('newMessage');
     };
-  }, [socket, roomInfo, resetGame]);
+  }, [socket, roomInfo, resetGame, screen, playerName]);
 
-  const handleSubmitAnswer = useCallback(async (timeExpired = false) => {
-    const submittedAnswer = timeExpired ? '' : userAnswer;
-    console.log(`[Game] Submitting answer: "${submittedAnswer}" (Mode: ${gameMode})`);
+  const handleSubmitAnswer = useCallback(
+    async (timeExpired = false) => {
+      const submittedAnswer = timeExpired ? '' : userAnswer;
+      console.log(`[Game] Submitting answer: "${submittedAnswer}" (Mode: ${gameMode})`);
 
-    if (!timeExpired && !userAnswer.trim() && !myResult) return;
-    if (myResult) return; 
+      if (!timeExpired && !userAnswer.trim() && !myResult) return;
+      if (myResult) return;
 
-    if (gameMode === 'ranked') {
-      if (socket) {
-        socket.emit('submitAnswer', { answer: userAnswer, responseTime: 15 - timeLeft });
-        setUserAnswer('');
+      if (gameMode === 'ranked') {
+        if (socket) {
+          socket.emit('submitAnswer', {
+            answer: submittedAnswer,
+            responseTime: 15 - timeLeft
+          });
+          setUserAnswer('');
+        }
+        return;
       }
-      return;
-    }
 
-    // Bot / Practice Logic (Server-Validated)
-    let isCorrect = false;
-    let correctAnswer = '';
-    try {
-      console.log(`[Solo] Validating answer for question ${currentQuestion._id}...`);
-      const resp = await fetch(`http://localhost:5001/api/questions/${currentQuestion._id}/check`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userAnswer: submittedAnswer })
-      });
-      const checkData = await resp.json();
-      isCorrect = checkData.correct;
-      correctAnswer = checkData.correctAnswer;
-      console.log(`[Solo] Result: ${isCorrect ? 'CORRECT' : 'WRONG'}. Correct: "${correctAnswer}"`);
-    } catch (err) {
-      console.error("[Solo] Answer check error:", err);
-    }
-
-    let newPlayerScore = playerScore;
-    let newOpponentScore = opponentScore;
-
-    if (isCorrect) newPlayerScore += 1;
-    setPlayerScore(newPlayerScore);
-
-    let results = {
-      player: {
-        playerName,
-        answered: submittedAnswer || 'No Answer',
-        correct: isCorrect,
-        currentScore: newPlayerScore
+      let isCorrect = false;
+      let correctAnswer = '';
+      try {
+        console.log(`[Solo] Validating answer for question ${currentQuestion._id}...`);
+        const resp = await fetch(`http://localhost:5001/api/questions/${currentQuestion._id}/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ userAnswer: submittedAnswer })
+        });
+        const checkData = await resp.json();
+        isCorrect = checkData.correct;
+        correctAnswer = checkData.correctAnswer;
+        console.log(`[Solo] Result: ${isCorrect ? 'CORRECT' : 'WRONG'}. Correct: "${correctAnswer}"`);
+      } catch (err) {
+        console.error('[Solo] Answer check error:', err);
       }
-    };
 
-    if (gameMode === 'bot') {
-      const finalBotAnswered = botAnswerData?.answered || 'No Answer';
-      const finalBotCorrect = botAnswerData?.correct || false;
-      if (finalBotCorrect) newOpponentScore += 1;
-      setOpponentScore(newOpponentScore);
+      let newPlayerScore = playerScore;
+      let newOpponentScore = opponentScore;
 
-      results.bot = {
-        playerName: 'Bot Knight',
-        answered: finalBotAnswered,
-        correct: finalBotCorrect,
-        currentScore: newOpponentScore
+      if (isCorrect) newPlayerScore += 1;
+      setPlayerScore(newPlayerScore);
+
+      const results = {
+        player: {
+          playerName,
+          answered: submittedAnswer || 'No Answer',
+          correct: isCorrect,
+          currentScore: newPlayerScore
+        }
       };
-    }
 
-    setRoundResults(results);
-    setMyResult({ isCorrect, correctAnswer });
-    setUserAnswer('');
+      if (gameMode === 'bot') {
+        const finalBotAnswered = botAnswerData?.answered || 'No Answer';
+        const finalBotCorrect = botAnswerData?.correct || false;
 
-    const nextIndex = questionIndex + 1;
-    if (nextIndex >= 5) {
-      console.log('[Solo] Session Complete');
-      setTimeout(() => setScreen('finished'), 2000);
-    } else {
-      setTimeout(async () => {
-        setQuestionIndex(nextIndex);
-        await fetchNextSoloQuestion();
-        setTimeLeft(15);
-        setBotAnswered(false);
-        setBotAnswerData(null);
-        setRoundResults(null);
-        setMyResult(null);
-      }, 2000);
-    }
-  }, [gameMode, userAnswer, socket, questionIndex, playerScore, opponentScore, botAnswerData, playerName, timeLeft, myResult, currentQuestion, fetchNextSoloQuestion]);
+        if (finalBotCorrect) newOpponentScore += 1;
+        setOpponentScore(newOpponentScore);
 
-  // Timer logic for Bot/Practice
+        results.bot = {
+          playerName: 'Bot Knight',
+          answered: finalBotAnswered,
+          correct: finalBotCorrect,
+          currentScore: newOpponentScore
+        };
+      }
+
+      setRoundResults(results);
+      setMyResult({ isCorrect, correctAnswer });
+      setUserAnswer('');
+
+      const nextIndex = questionIndex + 1;
+
+      if (nextIndex >= 5) {
+        console.log('[Solo] Session Complete');
+        setFinishReason('normal');
+
+        if (gameMode === 'practice') {
+          if (newPlayerScore >= 3) {
+            setMatchResult('win');
+          } else {
+            setMatchResult('loss');
+          }
+        } else if (gameMode === 'bot') {
+          if (newPlayerScore > newOpponentScore) {
+            setMatchResult('win');
+          } else if (newPlayerScore < newOpponentScore) {
+            setMatchResult('loss');
+          } else {
+            setMatchResult('draw');
+          }
+        }
+
+        setTimeout(() => setScreen('finished'), 2000);
+      } else {
+        setTimeout(async () => {
+          setQuestionIndex(nextIndex);
+          await fetchNextSoloQuestion();
+          setTimeLeft(15);
+          setBotAnswered(false);
+          setBotAnswerData(null);
+          setRoundResults(null);
+          setMyResult(null);
+        }, 2000);
+      }
+    },
+    [
+      gameMode,
+      userAnswer,
+      socket,
+      questionIndex,
+      playerScore,
+      opponentScore,
+      botAnswerData,
+      playerName,
+      timeLeft,
+      myResult,
+      currentQuestion,
+      fetchNextSoloQuestion
+    ]
+  );
+
   useEffect(() => {
     if (screen !== 'playing' || !currentQuestion || loading) return;
     if (gameMode === 'ranked') return;
@@ -260,9 +420,8 @@ export const GameProvider = ({ children }) => {
 
     const timer = setTimeout(() => setTimeLeft((prev) => prev - 1), 1000);
     return () => clearTimeout(timer);
-  }, [screen, currentQuestion, timeLeft, gameMode, handleSubmitAnswer, loading]);
+  }, [screen, currentQuestion, timeLeft, gameMode, handleSubmitAnswer, loading, setTimeLeft]);
 
-  // Bot logic
   useEffect(() => {
     if (screen !== 'playing' || gameMode !== 'bot' || !currentQuestion || loading) return;
 
@@ -289,17 +448,28 @@ export const GameProvider = ({ children }) => {
   }, [screen, gameMode, currentQuestion, playerRank, loading]);
 
   const joinRanked = useCallback(() => {
-    if (!playerName.trim() || !socket) return;
+    if (!playerName.trim() || !socket || !isAuthenticated) return;
     console.log('[Socket] Emitting joinGame:', playerName, playerRank);
     setGameMode('ranked');
+    setMatchResult(null);
+    setFinishReason('normal');
     socket.emit('joinGame', { playerName, rank: playerRank });
     setScreen('waiting');
-  }, [playerName, socket, playerRank]);
+  }, [playerName, socket, playerRank, isAuthenticated]);
 
   const startBotGame = useCallback(async () => {
     console.log('[Game] Starting Bot Duel');
     setGameMode('bot');
     setRoomInfo({ opponent: { name: 'Bot Knight' } });
+    setPlayerScore(0);
+    setOpponentScore(0);
+    setQuestionIndex(0);
+    setUserAnswer('');
+    setRoundResults(null);
+    setMyResult(null);
+    setMatchResult(null);
+    setFinishReason('normal');
+    setCategoryWinnerName(null);
     await fetchNextSoloQuestion();
     setScreen('playing');
   }, [fetchNextSoloQuestion]);
@@ -308,14 +478,22 @@ export const GameProvider = ({ children }) => {
     console.log('[Game] Starting Solo Practice');
     setGameMode('practice');
     setRoomInfo(null);
+    setPlayerScore(0);
+    setOpponentScore(0);
+    setQuestionIndex(0);
+    setUserAnswer('');
+    setRoundResults(null);
+    setMyResult(null);
+    setMatchResult(null);
+    setFinishReason('normal');
+    setCategoryWinnerName(null);
     await fetchNextSoloQuestion();
     setScreen('playing');
   }, [fetchNextSoloQuestion]);
 
-  // Cancel match finding
   const cancelSearch = useCallback(() => {
     console.log('[Game] Canceling search...');
-    
+
     if (socket && socket.connected) {
       socket.emit('leaveMatchup');
     }
@@ -323,20 +501,154 @@ export const GameProvider = ({ children }) => {
     resetGame();
   }, [socket, resetGame]);
 
+  // Invite functions
+  const sendInvite = useCallback((toUsername) => {
+    if (!socket || !isAuthenticated) return;
+    console.log('[Socket] Emitting sendInvite:', toUsername);
+    socket.emit('sendInvite', { toUsername });
+  }, [socket, isAuthenticated]);
+
+  const acceptInvite = useCallback((inviteId) => {
+    if (!socket) return;
+    console.log('[Socket] Emitting acceptInvite:', inviteId);
+    socket.emit('acceptInvite', { inviteId });
+    setPendingInvites(prev => prev.filter(invite => invite.inviteId !== inviteId));
+  }, [socket]);
+
+  const declineInvite = useCallback((inviteId) => {
+    if (!socket) return;
+    console.log('[Socket] Emitting declineInvite:', inviteId);
+    socket.emit('declineInvite', { inviteId });
+    setPendingInvites(prev => prev.filter(invite => invite.inviteId !== inviteId));
+  }, [socket]);
+
+  // Chat functions
+  const sendMessage = useCallback((message) => {
+    if (!socket || !roomInfo?.roomId) return;
+    console.log('[Socket] Emitting sendMessage:', message);
+    socket.emit('sendMessage', { roomId: roomInfo.roomId, message });
+  }, [socket, roomInfo]);
+
+  // Auth functions
+  const login = useCallback(async (username, password) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setToken(data.token);
+        setPlayerName(username);
+        setUserData(data.user);
+        setIsAuthenticated(true);
+        localStorage.setItem('token', data.token);
+        setScreen('modeSelect');
+        return { success: true };
+      } else {
+        return { success: false, message: data.error };
+      }
+    } catch (err) {
+      return { success: false, message: 'Network error' };
+    }
+  }, []);
+
+  const signup = useCallback(async (username, password) => {
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, password })
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setToken(data.token);
+        setPlayerName(username);
+        setUserData(data.user);
+        setIsAuthenticated(true);
+        localStorage.setItem('token', data.token);
+        setScreen('modeSelect');
+        return { success: true };
+      } else {
+        return { success: false, message: data.error };
+      }
+    } catch (err) {
+      return { success: false, message: 'Network error' };
+    }
+  }, []);
+
+  const fetchUserData = useCallback(async () => {
+    if (!token) return;
+    try {
+      const response = await fetch('http://localhost:5000/api/auth/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await response.json();
+      if (response.ok) {
+        setUserData(data.user);
+        setPlayerName(data.user.username);
+      }
+    } catch (err) {
+      console.error("Fetch user data error:", err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      fetchUserData();
+    }
+  }, [isAuthenticated, token, fetchUserData]);
+
+  const logout = useCallback(() => {
+    setToken(null);
+    setIsAuthenticated(false);
+    localStorage.removeItem('token');
+    setPlayerName('');
+    resetGame();
+    setScreen('login');
+  }, [resetGame]);
+
   const value = {
-    socket, screen, setScreen,
-    gameMode, setGameMode,
-    playerName, setPlayerName,
-    playerRank, roomInfo, banPick,
-    currentQuestion, userAnswer, setUserAnswer,
-    roundResults, myResult,
-    playerScore, opponentScore,
-    questionIndex, timeLeft, setTimeLeft,
-    botAnswered, setBotAnswered, botAnswerData, setBotAnswerData,
-    resetGame, joinRanked, startBotGame, startPractice,
+    socket,
+    screen,
+    setScreen,
+    gameMode,
+    setGameMode,
+    playerName,
+    setPlayerName,
+    playerRank,
+    roomInfo,
+    banPick,
+    currentQuestion,
+    userAnswer,
+    setUserAnswer,
+    roundResults,
+    myResult,
+    playerScore,
+    opponentScore,
+    questionIndex,
+    timeLeft,
+    setTimeLeft,
+    botAnswered,
+    setBotAnswered,
+    botAnswerData,
+    setBotAnswerData,
+    resetGame,
+    joinRanked,
+    startBotGame,
+    startPractice,
     cancelSearch,
+    // Invite/chat
+    pendingInvites, sendInvite, acceptInvite, declineInvite,
+    chatMessages, sendMessage,
+    // Auth
+    login, signup, logout,
     handleSubmitAnswer,
-    loading
+    loading,
+    matchResult,
+    finishReason,
+    categoryWinnerName
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

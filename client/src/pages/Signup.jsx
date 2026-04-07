@@ -4,7 +4,7 @@ import { useGame } from '../contexts/GameContext';
 const API_URL = 'http://localhost:5000';
 
 function Signup() {
-  const { setPlayerName, setScreen } = useGame();
+  const { signup, setScreen } = useGame();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirm, setConfirm] = useState('');

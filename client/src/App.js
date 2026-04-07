@@ -7,7 +7,10 @@ import Waiting from './pages/Waiting';
 import BanPick from './pages/BanPick';
 import Playing from './pages/Playing';
 import Finished from './pages/Finished';
+import InviteNotification from './components/InviteNotification';
+import ChatPanel from './components/ChatPanel';
 import './App.css';
+import UserProfile from './pages/UserProfile';
 
 function App() {
   const { screen } = useGame();
@@ -16,9 +19,14 @@ function App() {
     <div className="app-container">
       <div className="title-box">Trivia Duel</div>
 
+      {/* Global components */}
+      <InviteNotification />
+      <ChatPanel />
+
       {screen === 'login' && <Login />}
       {screen === 'signup' && <Signup />}
       {screen === 'modeSelect' && <ModeSelect />}
+      {screen === 'userProfile' && <UserProfile />}
       {screen === 'waiting' && <Waiting />}
       {screen === 'banPick' && <BanPick />}
       {screen === 'playing' && <Playing />}

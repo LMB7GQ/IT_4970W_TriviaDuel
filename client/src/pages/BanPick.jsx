@@ -4,6 +4,9 @@ import { useGame } from '../contexts/GameContext';
 function BanPick() {
   const { socket, banPick, roomInfo, gameMode } = useGame();
 
+  // Get completed categories from roomInfo (assuming it has categoryResults)
+  const completedCategories = roomInfo?.categoryResults ? Object.keys(roomInfo.categoryResults) : [];
+
   const handleBan = (category) => {
     if (gameMode === 'ranked' && socket && banPick?.turn === roomInfo?.myId) {
       socket.emit('banCategory', { category });
@@ -16,7 +19,7 @@ function BanPick() {
     }
   };
 
-  if (!roomInfo || !banPick) return null;
+  if (!roomInfo || !banPick || !banPick.bans) return null;
 
   return (
     <div className="game-section">
@@ -26,15 +29,18 @@ function BanPick() {
       </div>
       <div className="category-list">
         {roomInfo.categories.map((cat) => {
-          const isBanned = banPick.bans.includes(cat);
+          const isBanned = banPick.bans?.includes(cat) || false;
           const isPicked = banPick.pick === cat;
+          const isCompleted = completedCategories.includes(cat);
+          const isDisabled = isBanned || isPicked || isCompleted;
           return (
             <div 
               key={cat} 
-              className={`category-item ${isBanned ? 'disabled' : ''} ${isPicked ? 'picked' : ''}`}
-              onClick={() => banPick.phase === 'pick' ? handlePick(cat) : handleBan(cat)}
+              className={`category-item ${isDisabled ? 'disabled' : ''} ${isPicked ? 'picked' : ''} ${isCompleted ? 'completed' : ''}`}
+              onClick={() => !isDisabled && (banPick.phase === 'pick' ? handlePick(cat) : handleBan(cat))}
             >
               {cat}
+              {isCompleted && <span className="completed-indicator">✓</span>}
             </div>
           );
         })}

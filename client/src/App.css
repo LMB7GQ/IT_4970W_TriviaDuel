@@ -250,10 +250,19 @@ body {
   text-decoration: line-through;
 }
 
-.category-item.picked {
-  background: #d4af37;
-  color: #2f1d0d;
-  border-color: #fff;
+.category-item.completed {
+  background: rgba(34, 139, 34, 0.8);
+  border-color: #228b22;
+  position: relative;
+}
+
+.completed-indicator {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  color: white;
+  font-weight: bold;
+  font-size: 16px;
 }
 
 .turn-indicator {
