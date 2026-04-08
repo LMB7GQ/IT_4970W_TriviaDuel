@@ -16,15 +16,6 @@ export const GameProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
   const [userData, setUserData] = useState(null);
 
-  // Set initial screen based on authentication
-  useEffect(() => {
-    if (isAuthenticated) {
-      setScreen('modeSelect');
-    } else {
-      setScreen('login');
-    }
-  }, [isAuthenticated]);
-
   const [roomInfo, setRoomInfo] = useState(null);
   const [banPick, setBanPick] = useState(null);
   const [currentQuestion, setCurrentQuestion] = useState(null);
@@ -41,12 +32,25 @@ export const GameProvider = ({ children }) => {
   const [botAnswerData, setBotAnswerData] = useState(null);
   const [loading, setLoading] = useState(false);
 
+  // Added missing state used throughout the file
+  const [pendingInvites, setPendingInvites] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      setScreen('modeSelect');
+    } else {
+      setScreen('login');
+    }
+  }, [isAuthenticated]);
+
   useEffect(() => {
     const newSocket = io('http://localhost:5001');
     setSocket(newSocket);
     console.log('[Socket] Initialized connection to http://localhost:5001');
+
     return () => newSocket.disconnect();
-  }, [token]);
+  }, []);
 
   const fetchNextSoloQuestion = useCallback(async () => {
     try {
@@ -60,7 +64,7 @@ export const GameProvider = ({ children }) => {
       setLoading(false);
       return data;
     } catch (err) {
-      console.error("[Solo] Fetch error:", err);
+      console.error('[Solo] Fetch error:', err);
       setLoading(false);
       return null;
     }
@@ -68,7 +72,7 @@ export const GameProvider = ({ children }) => {
 
   const resetGame = useCallback(() => {
     console.log('[Game] Resetting game state');
-    setScreen('modeSelect');
+    setScreen(isAuthenticated ? 'modeSelect' : 'login');
     setGameMode(null);
     setRoomInfo(null);
     setBanPick(null);
@@ -83,7 +87,9 @@ export const GameProvider = ({ children }) => {
     setBotAnswered(false);
     setBotAnswerData(null);
     setLoading(false);
-  }, []);
+    setPendingInvites([]);
+    setChatMessages([]);
+  }, [isAuthenticated]);
 
   useEffect(() => {
     if (!socket) return;
@@ -94,25 +100,20 @@ export const GameProvider = ({ children }) => {
     });
 
     socket.on('matchReady', (data) => {
-      
-      //If player is not on the waiting screen, ignore this match
-      //This keeps the game from pulling the player back into a match if they chose to leave
-      if (screen !== 'waiting') {
-        console.log('[Socket] Ignoring matchReady, no longer waiting');
+      if (screen !== 'waiting' && screen !== 'modeSelect') {
+        console.log('[Socket] Ignoring matchReady, no longer available for match');
         return;
       }
-      
+
       console.log('[Socket] Event: matchReady', data);
-      
-      // If accepting an invite (on modeSelect), set game mode to ranked
+
       if (screen === 'modeSelect') {
         setGameMode('ranked');
       }
-      
-      // Clear any pending invites and chat messages since we're starting a new match
+
       setPendingInvites([]);
       setChatMessages([]);
-      
+
       setRoomInfo({
         roomId: data.roomId,
         myId: data.myId,
@@ -151,7 +152,8 @@ export const GameProvider = ({ children }) => {
       if (roomInfo?.myId && data.results[roomInfo.myId]) {
         setPlayerScore(data.results[roomInfo.myId].score);
       }
-      const oppId = roomInfo?.myId && Object.keys(data.results).find(id => id !== roomInfo.myId);
+
+      const oppId = roomInfo?.myId && Object.keys(data.results).find((id) => id !== roomInfo.myId);
       if (oppId) {
         setOpponentScore(data.results[oppId].score);
       }
@@ -167,10 +169,8 @@ export const GameProvider = ({ children }) => {
           setTimeLeft(15);
         }, 2000);
       } else {
-        // Category is done but match continues - go back to ban/pick
         console.log('[Socket] Category completed, returning to ban/pick phase');
         setTimeout(() => {
-          // banPick should already be set by the server in the roundResults event
           setCurrentQuestion(null);
           setRoundResults(null);
           setScreen('banPick');
@@ -184,25 +184,22 @@ export const GameProvider = ({ children }) => {
       resetGame();
     });
 
-    // Invite events
     socket.on('inviteReceived', (data) => {
       console.log('[Socket] Event: inviteReceived', data);
-      setPendingInvites(prev => [...prev, data]);
+      setPendingInvites((prev) => [...prev, data]);
     });
 
     socket.on('inviteSent', (data) => {
       console.log('[Socket] Event: inviteSent', data);
-      // Could show confirmation message
     });
 
     socket.on('inviteExpired', (data) => {
       console.log('[Socket] Event: inviteExpired', data);
-      setPendingInvites(prev => prev.filter(invite => invite.inviteId !== data.inviteId));
+      setPendingInvites((prev) => prev.filter((invite) => invite.inviteId !== data.inviteId));
     });
 
     socket.on('inviteDeclined', (data) => {
       console.log('[Socket] Event: inviteDeclined', data);
-      // Could show message that invite was declined
     });
 
     socket.on('inviteError', (data) => {
@@ -210,10 +207,9 @@ export const GameProvider = ({ children }) => {
       alert(data.message);
     });
 
-    // Chat events
     socket.on('newMessage', (data) => {
       console.log('[Socket] Event: newMessage', data);
-      setChatMessages(prev => [...prev, data]);
+      setChatMessages((prev) => [...prev, data]);
     });
 
     return () => {
@@ -231,26 +227,26 @@ export const GameProvider = ({ children }) => {
       socket.off('inviteError');
       socket.off('newMessage');
     };
-  }, [socket, roomInfo, resetGame]);
+  }, [socket, roomInfo, resetGame, screen]);
 
   const handleSubmitAnswer = useCallback(async (timeExpired = false) => {
     const submittedAnswer = timeExpired ? '' : userAnswer;
     console.log(`[Game] Submitting answer: "${submittedAnswer}" (Mode: ${gameMode})`);
 
     if (!timeExpired && !userAnswer.trim() && !myResult) return;
-    if (myResult) return; 
+    if (myResult) return;
 
     if (gameMode === 'ranked') {
       if (socket) {
-        socket.emit('submitAnswer', { answer: userAnswer, responseTime: 15 - timeLeft });
+        socket.emit('submitAnswer', { answer: submittedAnswer, responseTime: 15 - timeLeft });
         setUserAnswer('');
       }
       return;
     }
 
-    // Bot / Practice Logic (Server-Validated)
     let isCorrect = false;
     let correctAnswer = '';
+
     try {
       console.log(`[Solo] Validating answer for question ${currentQuestion._id}...`);
       const resp = await fetch(`http://localhost:5001/api/questions/${currentQuestion._id}/check`, {
@@ -263,7 +259,7 @@ export const GameProvider = ({ children }) => {
       correctAnswer = checkData.correctAnswer;
       console.log(`[Solo] Result: ${isCorrect ? 'CORRECT' : 'WRONG'}. Correct: "${correctAnswer}"`);
     } catch (err) {
-      console.error("[Solo] Answer check error:", err);
+      console.error('[Solo] Answer check error:', err);
     }
 
     let newPlayerScore = playerScore;
@@ -272,7 +268,7 @@ export const GameProvider = ({ children }) => {
     if (isCorrect) newPlayerScore += 1;
     setPlayerScore(newPlayerScore);
 
-    let results = {
+    const results = {
       player: {
         playerName,
         answered: submittedAnswer || 'No Answer',
@@ -316,7 +312,6 @@ export const GameProvider = ({ children }) => {
     }
   }, [gameMode, userAnswer, socket, questionIndex, playerScore, opponentScore, botAnswerData, playerName, timeLeft, myResult, currentQuestion, fetchNextSoloQuestion]);
 
-  // Timer logic for Bot/Practice
   useEffect(() => {
     if (screen !== 'playing' || !currentQuestion || loading) return;
     if (gameMode === 'ranked') return;
@@ -331,7 +326,6 @@ export const GameProvider = ({ children }) => {
     return () => clearTimeout(timer);
   }, [screen, currentQuestion, timeLeft, gameMode, handleSubmitAnswer, loading]);
 
-  // Bot logic
   useEffect(() => {
     if (screen !== 'playing' || gameMode !== 'bot' || !currentQuestion || loading) return;
 
@@ -344,7 +338,7 @@ export const GameProvider = ({ children }) => {
 
     console.log(`[Bot] Bot is thinking (Accuracy: ${botAccuracy}, Time: ${responseTime}ms)...`);
 
-    const botTimer = setTimeout(async () => {
+    const botTimer = setTimeout(() => {
       const correct = Math.random() < botAccuracy;
       console.log(`[Bot] Bot has answered. Correct: ${correct}`);
       setBotAnswered(true);
@@ -381,10 +375,9 @@ export const GameProvider = ({ children }) => {
     setScreen('playing');
   }, [fetchNextSoloQuestion]);
 
-  // Cancel match finding
   const cancelSearch = useCallback(() => {
     console.log('[Game] Canceling search...');
-    
+
     if (socket && socket.connected) {
       socket.emit('leaveMatchup');
     }
@@ -392,7 +385,6 @@ export const GameProvider = ({ children }) => {
     resetGame();
   }, [socket, resetGame]);
 
-  // Invite functions
   const sendInvite = useCallback((toUsername) => {
     if (!socket || !isAuthenticated) return;
     console.log('[Socket] Emitting sendInvite:', toUsername);
@@ -403,24 +395,22 @@ export const GameProvider = ({ children }) => {
     if (!socket) return;
     console.log('[Socket] Emitting acceptInvite:', inviteId);
     socket.emit('acceptInvite', { inviteId });
-    setPendingInvites(prev => prev.filter(invite => invite.inviteId !== inviteId));
+    setPendingInvites((prev) => prev.filter((invite) => invite.inviteId !== inviteId));
   }, [socket]);
 
   const declineInvite = useCallback((inviteId) => {
     if (!socket) return;
     console.log('[Socket] Emitting declineInvite:', inviteId);
     socket.emit('declineInvite', { inviteId });
-    setPendingInvites(prev => prev.filter(invite => invite.inviteId !== inviteId));
+    setPendingInvites((prev) => prev.filter((invite) => invite.inviteId !== inviteId));
   }, [socket]);
 
-  // Chat functions
   const sendMessage = useCallback((message) => {
     if (!socket || !roomInfo?.roomId) return;
     console.log('[Socket] Emitting sendMessage:', message);
     socket.emit('sendMessage', { roomId: roomInfo.roomId, message });
   }, [socket, roomInfo]);
 
-  // Auth functions
   const login = useCallback(async (username, password) => {
     try {
       const response = await fetch('http://localhost:5000/api/auth/login', {
@@ -437,9 +427,8 @@ export const GameProvider = ({ children }) => {
         localStorage.setItem('token', data.token);
         setScreen('modeSelect');
         return { success: true };
-      } else {
-        return { success: false, message: data.error };
       }
+      return { success: false, message: data.error };
     } catch (err) {
       return { success: false, message: 'Network error' };
     }
@@ -461,9 +450,8 @@ export const GameProvider = ({ children }) => {
         localStorage.setItem('token', data.token);
         setScreen('modeSelect');
         return { success: true };
-      } else {
-        return { success: false, message: data.error };
       }
+      return { success: false, message: data.error };
     } catch (err) {
       return { success: false, message: 'Network error' };
     }
@@ -473,7 +461,7 @@ export const GameProvider = ({ children }) => {
     if (!token) return;
     try {
       const response = await fetch('http://localhost:5000/api/auth/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
       if (response.ok) {
@@ -481,7 +469,7 @@ export const GameProvider = ({ children }) => {
         setPlayerName(data.user.username);
       }
     } catch (err) {
-      console.error("Fetch user data error:", err);
+      console.error('Fetch user data error:', err);
     }
   }, [token]);
 
@@ -494,6 +482,7 @@ export const GameProvider = ({ children }) => {
   const logout = useCallback(() => {
     setToken(null);
     setIsAuthenticated(false);
+    setUserData(null);
     localStorage.removeItem('token');
     setPlayerName('');
     resetGame();
@@ -501,24 +490,49 @@ export const GameProvider = ({ children }) => {
   }, [resetGame]);
 
   const value = {
-    socket, screen, setScreen,
-    gameMode, setGameMode,
-    playerName, setPlayerName,
-    playerRank, roomInfo, banPick,
-    currentQuestion, userAnswer, setUserAnswer,
-    roundResults, myResult,
-    playerScore, opponentScore,
-    questionIndex, timeLeft, setTimeLeft,
-    botAnswered, setBotAnswered, botAnswerData, setBotAnswerData,
-    resetGame, joinRanked, startBotGame, startPractice,
+    socket,
+    screen,
+    setScreen,
+    gameMode,
+    setGameMode,
+    playerName,
+    setPlayerName,
+    playerRank,
+    roomInfo,
+    banPick,
+    currentQuestion,
+    userAnswer,
+    setUserAnswer,
+    roundResults,
+    myResult,
+    playerScore,
+    opponentScore,
+    questionIndex,
+    timeLeft,
+    setTimeLeft,
+    botAnswered,
+    setBotAnswered,
+    botAnswerData,
+    setBotAnswerData,
+    resetGame,
+    joinRanked,
+    startBotGame,
+    startPractice,
     cancelSearch,
-    // Invite/chat
-    pendingInvites, sendInvite, acceptInvite, declineInvite,
-    chatMessages, sendMessage,
-    // Auth
-    login, signup, logout,
+    pendingInvites,
+    setPendingInvites,
+    sendInvite,
+    acceptInvite,
+    declineInvite,
+    chatMessages,
+    setChatMessages,
+    sendMessage,
+    login,
+    signup,
+    logout,
     handleSubmitAnswer,
-    loading
+    loading,
+    userData
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

@@ -6,6 +6,7 @@ const mongoose   = require('mongoose');
 require('dotenv').config();
 
 const questionRoutes = require('./routes/questionRoutes');
+const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
 const initSocket     = require('./socket/matchSocket');
 const { socketAuth } = require('./middleware/auth');

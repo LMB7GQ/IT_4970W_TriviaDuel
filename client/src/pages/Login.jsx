@@ -1,8 +1,6 @@
 import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 
-const API_URL = 'http://localhost:5001';
-
 function Login() {
   const { login, setScreen } = useGame();
   const [username, setUsername] = useState('');
@@ -15,21 +13,16 @@ function Login() {
       setMessage('Please enter both username and password.');
       return;
     }
+
     setMessage('');
     setLoading(true);
+
     try {
-      const res = await fetch(`${API_URL}/api/users/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: username.trim(), password }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setMessage(data.error || 'Login failed');
-        return;
+      const result = await login(username.trim(), password);
+
+      if (!result.success) {
+        setMessage(result.message || 'Login failed');
       }
-      setPlayerName(data.username);
-      setScreen('modeSelect');
     } catch (err) {
       setMessage('Connection error. Is the server running?');
     } finally {
@@ -40,10 +33,29 @@ function Login() {
   return (
     <div className="join-section">
       <h2>Login</h2>
-      <input type="text" placeholder="Username" value={username} onChange={(e) => setUsername(e.target.value)} />
-      <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-      <button onClick={handleLogin} disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
-      <button onClick={() => setScreen('signup')}>Create Account</button>
+
+      <input
+        type="text"
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
+      />
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+      />
+
+      <button onClick={handleLogin} disabled={loading}>
+        {loading ? 'Logging in...' : 'Login'}
+      </button>
+
+      <button onClick={() => setScreen('signup')}>
+        Create Account
+      </button>
+
       {message && <p className="form-message">{message}</p>}
     </div>
   );
