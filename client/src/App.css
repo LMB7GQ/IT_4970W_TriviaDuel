@@ -4,8 +4,7 @@ body {
   color: #f5e6c8;
 
   background:
-    radial-gradient(circle at center, rgba(0,0,0,0) 30%, rgba(0,0,0,0.85) 100%),
-    linear-gradient(rgba(0,0,0,0.55), rgba(0,0,0,0.65)),
+    linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.55)),
     url("./assets/background.jpg");
 
   background-size: cover;
@@ -293,80 +292,214 @@ body {
   border: 1px solid #b22222;
   color: #ff6347;
 }
-.finished-screen {
-  animation: fadeInUp 0.6s ease;
+
+/* Modal Styles */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
 }
 
-.result-title {
-  font-size: 2.6rem;
+.modal-content {
+  background: rgba(58, 40, 20, 0.95);
+  border: 2px solid #c9a44c;
+  border-radius: 18px;
+  padding: 28px;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+}
+
+.modal-content h3 {
+  color: #f9e7b3;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.modal-buttons {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.modal-buttons button {
+  flex: 1;
+  padding: 12px;
+  background: linear-gradient(180deg, #a87a28, #7a5418);
+  color: #fff4d6;
+  border: 2px solid #d4af37;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.modal-buttons button:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.08);
+}
+
+/* Invite Notification */
+.invite-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 1001;
+  max-width: 350px;
+}
+
+.invite-item {
+  background: rgba(58, 40, 20, 0.95);
+  border: 2px solid #d4af37;
+  border-radius: 12px;
+  padding: 16px;
   margin-bottom: 10px;
-  letter-spacing: 1px;
-  text-transform: uppercase;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
 
-.result-message {
-  font-size: 1.1rem;
-  margin-bottom: 24px;
+.invite-item p {
+  color: #f9e7b3;
+  margin: 0 0 12px 0;
+  font-weight: bold;
+}
+
+.invite-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.invite-buttons button {
+  flex: 1;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.accept-btn {
+  background: #228b22;
+  color: white;
+}
+
+.accept-btn:hover {
+  background: #32cd32;
+}
+
+.decline-btn {
+  background: #b22222;
+  color: white;
+}
+
+.decline-btn:hover {
+  background: #dc143c;
+}
+
+/* Chat Panel */
+.chat-panel {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 300px;
+  height: 400px;
+  background: rgba(58, 40, 20, 0.95);
+  border: 2px solid #c9a44c;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  z-index: 1000;
+}
+
+.chat-header {
+  padding: 12px;
+  border-bottom: 1px solid #c9a44c;
+  background: rgba(97, 67, 31, 0.8);
+  border-radius: 10px 10px 0 0;
+}
+
+.chat-header h4 {
+  margin: 0;
+  color: #f9e7b3;
+  text-align: center;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+  max-height: 280px;
+}
+
+.chat-message {
+  margin-bottom: 8px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  background: rgba(97, 67, 31, 0.6);
+  font-size: 14px;
+}
+
+.chat-message.own-message {
+  background: rgba(168, 122, 40, 0.8);
+  text-align: right;
+}
+
+.chat-sender {
+  font-weight: bold;
+  color: #d4af37;
+  margin-right: 6px;
+}
+
+.chat-text {
   color: #f5e6c8;
 }
 
-.finished-screen.win .result-title {
-  color: #6ee7b7;
-  text-shadow: 0 0 18px rgba(110, 231, 183, 0.35);
-}
-
-.finished-screen.loss .result-title {
-  color: #f87171;
-  text-shadow: 0 0 18px rgba(248, 113, 113, 0.35);
-}
-
-.finished-screen.draw .result-title {
-  color: #facc15;
-  text-shadow: 0 0 18px rgba(250, 204, 21, 0.35);
-}
-
-.finished-buttons {
+.chat-input {
   display: flex;
-  justify-content: center;
-  gap: 14px;
-  flex-wrap: wrap;
-  margin-top: 24px;
+  padding: 12px;
+  border-top: 1px solid #c9a44c;
+  gap: 8px;
 }
 
-.finished-buttons button {
-  background: linear-gradient(180deg, #8b6a2b, #5a3e12);
-  color: #f9e7b3;
-  border: 2px solid #d4af37;
-  border-radius: 12px;
-  padding: 12px 22px;
+.chat-input input {
+  flex: 1;
+  padding: 8px;
+  border: 1px solid #a8843b;
+  border-radius: 6px;
+  background: #f3e6c8;
+  color: #2f1d0d;
+  font-size: 14px;
+}
+
+.chat-input button {
+  padding: 8px 12px;
+  background: linear-gradient(180deg, #a87a28, #7a5418);
+  color: #fff4d6;
+  border: 1px solid #d4af37;
+  border-radius: 6px;
+  font-size: 14px;
   font-weight: bold;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  transition: all 0.2s;
 }
 
-.finished-buttons button:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+.chat-input button:hover {
+  background: #8b6a2b;
 }
 
-.category-winner-banner {
-  margin-top: 14px;
-  padding: 10px 16px;
-  border: 2px solid #d4af37;
-  border-radius: 12px;
-  background: rgba(0, 0, 0, 0.35);
-  color: #f9e7b3;
-  font-weight: bold;
-  display: inline-block;
-}
-
-@keyframes fadeInUp {
-  from {
-    opacity: 0;
-    transform: translateY(18px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+/* Invite Button */
+.invite-button {
+  width: auto !important;
+  margin: 10px auto !important;
+  display: block;
+  max-width: 200px;
 }
