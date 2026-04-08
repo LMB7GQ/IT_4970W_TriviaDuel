@@ -12,13 +12,12 @@ import ChatPanel from './components/ChatPanel';
 import './App.css';
 import UserProfile from './pages/UserProfile';
 
+
 function App() {
   const { screen } = useGame();
 
   return (
     <div className="app-container">
-      <div className="title-box">Trivia Duel</div>
-
       {/* Global components */}
       <InviteNotification />
       <ChatPanel />

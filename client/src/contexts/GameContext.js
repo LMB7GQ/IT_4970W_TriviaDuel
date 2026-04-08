@@ -532,7 +532,8 @@ export const GameProvider = ({ children }) => {
     logout,
     handleSubmitAnswer,
     loading,
-    userData
+    userData,
+    isAuthenticated,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

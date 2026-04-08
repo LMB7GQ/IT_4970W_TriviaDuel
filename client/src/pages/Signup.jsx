@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
+import GameLogo from '../components/GameLogo';
 
 function Signup() {
   const { signup, setScreen } = useGame();
@@ -43,6 +44,8 @@ function Signup() {
 
   return (
     <div className="join-section">
+      <GameLogo />
+
       <h2>Create Account</h2>
 
       <input

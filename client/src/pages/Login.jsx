@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
+import GameLogo from '../components/GameLogo';
 
 function Login() {
   const { login, setScreen } = useGame();
@@ -32,6 +33,8 @@ function Login() {
 
   return (
     <div className="join-section">
+      <GameLogo />
+
       <h2>Login</h2>
 
       <input

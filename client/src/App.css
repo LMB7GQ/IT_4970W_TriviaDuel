@@ -503,3 +503,24 @@ body {
   display: block;
   max-width: 200px;
 }
+.game-logo-wrap {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 18px;
+}
+
+.game-logo-wrap.small {
+  margin-bottom: 10px;
+}
+
+.game-logo {
+  width: min(320px, 80%);
+  height: auto;
+  display: block;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.35));
+}
+
+.join-section .game-logo {
+  max-height: 180px;
+}
