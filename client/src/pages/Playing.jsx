@@ -3,60 +3,45 @@ import { useGame } from '../contexts/GameContext';
 
 function Playing() {
   const {
-    gameMode,
-    playerName,
-    roomInfo,
-    currentQuestion,
-    userAnswer,
-    setUserAnswer,
-    roundResults,
-    myResult,
-    playerScore,
-    opponentScore,
+    gameMode, playerName, roomInfo,
+    currentQuestion, userAnswer, setUserAnswer,
+    roundResults, myResult,
+    playerScore, opponentScore,
     timeLeft,
     botAnswered,
-    handleSubmitAnswer,
-    categoryWinnerName
+    handleSubmitAnswer
   } = useGame();
 
   return (
     <div className="game-section">
       <div className="matchup-line">
-        {gameMode === 'practice'
-          ? `${playerName} Practice`
-          : `${playerName} vs ${roomInfo?.opponent?.name || 'Bot Knight'}`}
+        {gameMode === 'practice' ? `${playerName} Practice` : `${playerName} vs ${roomInfo?.opponent?.name || 'Bot Knight'}`}
       </div>
-
+      
       {gameMode !== 'ranked' && (
         <div className="timer-box">Time Left: {timeLeft}s</div>
       )}
 
       <div className="scoreboard">
         <div className="score-card">
-          {playerName}
-          <br />
-          Score: {playerScore}
+          {playerName}<br />Score: {playerScore}
         </div>
-
         {gameMode !== 'practice' && (
           <div className="score-card">
-            {roomInfo?.opponent?.name || 'Bot Knight'}
-            <br />
-            Score: {opponentScore}
+            {roomInfo?.opponent?.name || 'Bot Knight'}<br />Score: {opponentScore}
           </div>
         )}
       </div>
 
       <div className="question-area">
         <h2>{currentQuestion?.question}</h2>
-
         {!myResult ? (
           <>
-            <input
-              type="text"
-              placeholder="Type answer..."
-              value={userAnswer}
-              onChange={(e) => setUserAnswer(e.target.value)}
+            <input 
+              type="text" 
+              placeholder="Type answer..." 
+              value={userAnswer} 
+              onChange={(e) => setUserAnswer(e.target.value)} 
               onKeyDown={(e) => e.key === 'Enter' && handleSubmitAnswer()}
             />
             <button onClick={() => handleSubmitAnswer()}>Submit</button>
@@ -80,17 +65,10 @@ function Playing() {
           <ul>
             {Object.entries(roundResults).map(([pid, info]) => (
               <li key={pid}>
-                {info.name || info.playerName}: {info.answer || info.answered} —{' '}
-                {info.isCorrect || info.correct ? '✅' : '❌'}
+                {info.name || info.playerName}: {info.answer || info.answered} — {info.isCorrect || info.correct ? '✅' : '❌'}
               </li>
             ))}
           </ul>
-
-          {categoryWinnerName && gameMode === 'ranked' && (
-            <div className="category-winner-banner">
-              Category Winner: {categoryWinnerName}
-            </div>
-          )}
         </div>
       )}
     </div>

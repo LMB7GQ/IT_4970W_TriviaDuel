@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
 
-const API_URL = 'http://localhost:5000';
+const API_URL = 'http://localhost:5001';
 
 function Signup() {
   const { signup, setScreen } = useGame();
