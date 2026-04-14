@@ -7,7 +7,7 @@ export const useGame = () => useContext(GameContext);
 
 export const GameProvider = ({ children }) => {
   const [socket, setSocket] = useState(null);
-  const [screen, setScreen] = useState('login'); // login, signup, modeSelect, waiting, banPick, playing, finished
+  const [screen, setScreen] = useState('login');
   const [gameMode, setGameMode] = useState(null);
 
   const [playerName, setPlayerName] = useState('');
@@ -32,9 +32,12 @@ export const GameProvider = ({ children }) => {
   const [botAnswerData, setBotAnswerData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  // Added missing state used throughout the file
   const [pendingInvites, setPendingInvites] = useState([]);
   const [chatMessages, setChatMessages] = useState([]);
+
+  const [matchResult, setMatchResult] = useState(null); // 'win' | 'loss' | 'draw'
+  const [finishReason, setFinishReason] = useState('normal'); // 'normal' | 'disconnect'
+  const [categoryWinnerName, setCategoryWinnerName] = useState(null);
 
   useEffect(() => {
     if (isAuthenticated) {
@@ -58,6 +61,7 @@ export const GameProvider = ({ children }) => {
       console.log(`[Solo] Fetching next question (Rank: ${playerRank})...`);
       const response = await fetch(`http://localhost:5000/api/questions/random?rank=${playerRank}`);
       if (!response.ok) throw new Error('Failed to fetch');
+
       const data = await response.json();
       console.log('[Solo] Fetched Question:', data._id, data.question);
       setCurrentQuestion(data);
@@ -89,6 +93,9 @@ export const GameProvider = ({ children }) => {
     setLoading(false);
     setPendingInvites([]);
     setChatMessages([]);
+    setMatchResult(null);
+    setFinishReason('normal');
+    setCategoryWinnerName(null);
   }, [isAuthenticated]);
 
   useEffect(() => {
@@ -113,6 +120,9 @@ export const GameProvider = ({ children }) => {
 
       setPendingInvites([]);
       setChatMessages([]);
+      setMatchResult(null);
+      setFinishReason('normal');
+      setCategoryWinnerName(null);
 
       setRoomInfo({
         roomId: data.roomId,
@@ -120,6 +130,7 @@ export const GameProvider = ({ children }) => {
         opponent: data.opponent,
         categories: data.categories
       });
+
       setBanPick(data.banPick);
       setScreen('banPick');
     });
@@ -137,6 +148,7 @@ export const GameProvider = ({ children }) => {
       setMyResult(null);
       setScreen('playing');
       setTimeLeft(15);
+      setCategoryWinnerName(null);
     });
 
     socket.on('answerAcknowledged', (data) => {
@@ -149,19 +161,54 @@ export const GameProvider = ({ children }) => {
       setRoundResults(data.results);
       setMyResult(null);
 
-      if (roomInfo?.myId && data.results[roomInfo.myId]) {
+      if (roomInfo?.myId && data.results?.[roomInfo.myId]) {
         setPlayerScore(data.results[roomInfo.myId].score);
       }
 
-      const oppId = roomInfo?.myId && Object.keys(data.results).find((id) => id !== roomInfo.myId);
-      if (oppId) {
+      const oppId =
+        roomInfo?.myId && data.results
+          ? Object.keys(data.results).find((id) => id !== roomInfo.myId)
+          : null;
+
+      if (oppId && data.results?.[oppId]) {
         setOpponentScore(data.results[oppId].score);
       }
 
+      if (data.categoryWinner && data.results?.[data.categoryWinner]) {
+        setCategoryWinnerName(data.results[data.categoryWinner].name);
+      }
+
       if (data.matchWinner) {
-        console.log('[Socket] Match Over. Winner:', data.matchWinner);
+        const myFinalScore =
+          roomInfo?.myId && data.results?.[roomInfo.myId]
+            ? data.results[roomInfo.myId].score
+            : 0;
+      
+        const oppFinalId =
+          roomInfo?.myId && data.results
+            ? Object.keys(data.results).find((id) => id !== roomInfo.myId)
+            : null;
+      
+        const oppFinalScore =
+          oppFinalId && data.results?.[oppFinalId]
+            ? data.results[oppFinalId].score
+            : 0;
+      
+        setPlayerScore(myFinalScore);
+        setOpponentScore(oppFinalScore);
+        setFinishReason('normal');
+      
+        if (myFinalScore > oppFinalScore) {
+          setMatchResult('win');
+        } else if (myFinalScore < oppFinalScore) {
+          setMatchResult('loss');
+        } else {
+          setMatchResult('draw');
+        }
+      
         setTimeout(() => setScreen('finished'), 2000);
-      } else if (!data.categoryDone) {
+      }
+       else if (!data.categoryDone) {
         setTimeout(() => {
           setCurrentQuestion(data.nextQuestion);
           setQuestionIndex(data.questionIndex);
@@ -180,8 +227,11 @@ export const GameProvider = ({ children }) => {
 
     socket.on('opponentDisconnected', (data) => {
       console.log('[Socket] Event: opponentDisconnected', data);
-      alert(data.message || 'Opponent disconnected');
-      resetGame();
+      setFinishReason('disconnect');
+      setMatchResult('win');
+      setRoundResults(null);
+      setMyResult(null);
+      setTimeout(() => setScreen('finished'), 500);
     });
 
     socket.on('inviteReceived', (data) => {
@@ -238,7 +288,10 @@ export const GameProvider = ({ children }) => {
 
     if (gameMode === 'ranked') {
       if (socket) {
-        socket.emit('submitAnswer', { answer: submittedAnswer, responseTime: 15 - timeLeft });
+        socket.emit('submitAnswer', {
+          answer: submittedAnswer,
+          responseTime: 15 - timeLeft
+        });
         setUserAnswer('');
       }
       return;
@@ -254,6 +307,7 @@ export const GameProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userAnswer: submittedAnswer })
       });
+
       const checkData = await resp.json();
       isCorrect = checkData.correct;
       correctAnswer = checkData.correctAnswer;
@@ -280,6 +334,7 @@ export const GameProvider = ({ children }) => {
     if (gameMode === 'bot') {
       const finalBotAnswered = botAnswerData?.answered || 'No Answer';
       const finalBotCorrect = botAnswerData?.correct || false;
+
       if (finalBotCorrect) newOpponentScore += 1;
       setOpponentScore(newOpponentScore);
 
@@ -296,9 +351,29 @@ export const GameProvider = ({ children }) => {
     setUserAnswer('');
 
     const nextIndex = questionIndex + 1;
+
     if (nextIndex >= 5) {
       console.log('[Solo] Session Complete');
-      setTimeout(() => setScreen('finished'), 2000);
+    
+      if (gameMode === 'practice') {
+        setTimeout(() => {
+          alert('Practice complete!');
+          resetGame();
+        }, 1000);
+      } else {
+        if (gameMode === 'bot') {
+          if (newPlayerScore > newOpponentScore) {
+            setMatchResult('win');
+          } else if (newPlayerScore < newOpponentScore) {
+            setMatchResult('loss');
+          } else {
+            setMatchResult('draw');
+          }
+        }
+    
+        setFinishReason('normal');
+        setTimeout(() => setScreen('finished'), 2000);
+      }
     } else {
       setTimeout(async () => {
         setQuestionIndex(nextIndex);
@@ -310,7 +385,21 @@ export const GameProvider = ({ children }) => {
         setMyResult(null);
       }, 2000);
     }
-  }, [gameMode, userAnswer, socket, questionIndex, playerScore, opponentScore, botAnswerData, playerName, timeLeft, myResult, currentQuestion, fetchNextSoloQuestion]);
+  }, [
+    gameMode,
+    userAnswer,
+    socket,
+    questionIndex,
+    playerScore,
+    opponentScore,
+    botAnswerData,
+    playerName,
+    timeLeft,
+    myResult,
+    currentQuestion,
+    fetchNextSoloQuestion,
+    resetGame
+  ]);
 
   useEffect(() => {
     if (screen !== 'playing' || !currentQuestion || loading) return;
@@ -355,6 +444,9 @@ export const GameProvider = ({ children }) => {
     if (!playerName.trim() || !socket || !isAuthenticated) return;
     console.log('[Socket] Emitting joinGame:', playerName, playerRank);
     setGameMode('ranked');
+    setMatchResult(null);
+    setFinishReason('normal');
+    setCategoryWinnerName(null);
     socket.emit('joinGame', { playerName, rank: playerRank });
     setScreen('waiting');
   }, [playerName, socket, playerRank, isAuthenticated]);
@@ -363,6 +455,15 @@ export const GameProvider = ({ children }) => {
     console.log('[Game] Starting Bot Duel');
     setGameMode('bot');
     setRoomInfo({ opponent: { name: 'Bot Knight' } });
+    setPlayerScore(0);
+    setOpponentScore(0);
+    setQuestionIndex(0);
+    setUserAnswer('');
+    setRoundResults(null);
+    setMyResult(null);
+    setMatchResult(null);
+    setFinishReason('normal');
+    setCategoryWinnerName(null);
     await fetchNextSoloQuestion();
     setScreen('playing');
   }, [fetchNextSoloQuestion]);
@@ -371,17 +472,24 @@ export const GameProvider = ({ children }) => {
     console.log('[Game] Starting Solo Practice');
     setGameMode('practice');
     setRoomInfo(null);
+    setPlayerScore(0);
+    setOpponentScore(0);
+    setQuestionIndex(0);
+    setUserAnswer('');
+    setRoundResults(null);
+    setMyResult(null);
+    setMatchResult(null);
+    setFinishReason('normal');
+    setCategoryWinnerName(null);
     await fetchNextSoloQuestion();
     setScreen('playing');
   }, [fetchNextSoloQuestion]);
 
   const cancelSearch = useCallback(() => {
     console.log('[Game] Canceling search...');
-
     if (socket && socket.connected) {
       socket.emit('leaveMatchup');
     }
-
     resetGame();
   }, [socket, resetGame]);
 
@@ -418,17 +526,30 @@ export const GameProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
+  
       const data = await response.json();
+  
       if (response.ok) {
-        setToken(data.token);
-        setPlayerName(username);
-        setUserData(data.user);
+        const receivedToken = data.token || null;
+        const receivedUser = data.user || { username };
+  
+        if (receivedToken) {
+          setToken(receivedToken);
+          localStorage.setItem('token', receivedToken);
+        }
+  
+        setPlayerName(receivedUser.username || username);
+        setUserData(receivedUser);
         setIsAuthenticated(true);
-        localStorage.setItem('token', data.token);
         setScreen('modeSelect');
+  
         return { success: true };
       }
-      return { success: false, message: data.error };
+  
+      return {
+        success: false,
+        message: data.error || data.message || 'Invalid username or password'
+      };
     } catch (err) {
       return { success: false, message: 'Network error' };
     }
@@ -441,17 +562,30 @@ export const GameProvider = ({ children }) => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
       });
+  
       const data = await response.json();
+  
       if (response.ok) {
-        setToken(data.token);
-        setPlayerName(username);
-        setUserData(data.user);
+        const receivedToken = data.token || null;
+        const receivedUser = data.user || { username };
+  
+        if (receivedToken) {
+          setToken(receivedToken);
+          localStorage.setItem('token', receivedToken);
+        }
+  
+        setPlayerName(receivedUser.username || username);
+        setUserData(receivedUser);
         setIsAuthenticated(true);
-        localStorage.setItem('token', data.token);
         setScreen('modeSelect');
+  
         return { success: true };
       }
-      return { success: false, message: data.error };
+  
+      return {
+        success: false,
+        message: data.error || data.message || 'Registration failed'
+      };
     } catch (err) {
       return { success: false, message: 'Network error' };
     }
@@ -459,12 +593,17 @@ export const GameProvider = ({ children }) => {
 
   const fetchUserData = useCallback(async () => {
     if (!token) return;
+  
     try {
       const response = await fetch('http://localhost:5000/api/users/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
+  
+      if (!response.ok) return;
+  
       const data = await response.json();
-      if (response.ok) {
+  
+      if (data.user) {
         setUserData(data.user);
         setPlayerName(data.user.username);
       }
@@ -474,10 +613,10 @@ export const GameProvider = ({ children }) => {
   }, [token]);
 
   useEffect(() => {
-    if (isAuthenticated && token) {
-      fetchUserData();
+    if (isAuthenticated && screen === 'login') {
+      setScreen('modeSelect');
     }
-  }, [isAuthenticated, token, fetchUserData]);
+  }, [isAuthenticated, screen]);
 
   const logout = useCallback(() => {
     setToken(null);
@@ -534,6 +673,9 @@ export const GameProvider = ({ children }) => {
     loading,
     userData,
     isAuthenticated,
+    matchResult,
+    finishReason,
+    categoryWinnerName
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
