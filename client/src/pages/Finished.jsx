@@ -6,7 +6,7 @@ function Finished() {
 
   return (
     <div className="game-section">
-      <h2>Battle Complete</h2>
+      <h2>Battle Complete!</h2>
       <div className="scoreboard">
         <div className="score-card">
           {playerName}<br />Final Score: {playerScore}

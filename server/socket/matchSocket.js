@@ -88,7 +88,6 @@ const initSocket = (io) => {
 
       console.log(`${playerName} (rank: ${effectiveRank}) is joining...`);
 
-      console.log(`${name} (rank: ${playerRank}) is joining...`);
 
       // Remove if already in waiting list
       const existingIndex = waitingPlayers.findIndex(p => p.socketId === socket.id);
