@@ -40,12 +40,10 @@ export const GameProvider = ({ children }) => {
   const [categoryWinnerName, setCategoryWinnerName] = useState(null);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && screen === 'login') {
       setScreen('modeSelect');
-    } else {
-      setScreen('login');
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, screen]);
 
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
