@@ -1,0 +1,53 @@
+{
+  "easy": [
+    "President",
+    "Congress",
+    "Democracy",
+    "Constitution",
+    "Police",
+    "Judge",
+    "Election",
+    "Taxes",
+    "Senate",
+    "Military",
+    "Mayor",
+    "Governor",
+    "Lawyer",
+    "Court",
+    "Justice",
+    "Passport",
+    "Visa",
+    "Flag",
+    "White House",
+    "Capitol",
+    "Parliament",
+    "Prime Minister",
+    "Sheriff",
+    "Marshals",
+    "Census",
+    "Treaty",
+    "Veto",
+    "Impeach",
+    "Pardon",
+    "Oath"
+  ],
+  "easy-medium": [
+    "Magna Carta",
+    "Habeas Corpus",
+    "Bill of Rights",
+    "Executive Order",
+    "Diplomacy",
+    "Treaty of Versailles",
+    "Jurisdiction",
+    "Nuremberg Trials",
+    "Statute of Limitations",
+    "Extradition"
+  ],
+  "medium": [
+    "Subpoena Duces Tecum",
+    "Pro Bono",
+    "Per Curiam",
+    "Double Jeopardy",
+    "Habeas Data"
+  ]
+}

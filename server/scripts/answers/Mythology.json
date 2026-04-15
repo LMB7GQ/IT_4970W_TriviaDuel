@@ -1,0 +1,67 @@
+{
+  "easy": [
+    "Zeus",
+    "Thor",
+    "Hercules",
+    "Poseidon",
+    "Apollo",
+    "Medusa",
+    "Odin",
+    "Athena",
+    "Hades",
+    "Loki",
+    "Artemis",
+    "Diana",
+    "Ares",
+    "Mars",
+    "Demeter",
+    "Hera",
+    "Jupiter",
+    "Neptune",
+    "Persephone",
+    "Venus",
+    "Minotaur",
+    "Cerberus",
+    "Chimera",
+    "Sphinx",
+    "Hestia",
+    "Vesta",
+    "Gaia",
+    "Cronus",
+    "Rhea",
+    "Hecate"
+  ],
+  "easy-medium": [
+    "Nemean Lion",
+    "Dryad",
+    "Siren",
+    "Hebe",
+    "Echidna",
+    "Charon",
+    "Harpies",
+    "Laomedon",
+    "Bellerophon",
+    "Daedalus"
+  ],
+  "medium": [
+    "Hephaestus",
+    "Bia",
+    "Lamia",
+    "Tantalus",
+    "Kronos"
+  ],
+  "medium-hard": [
+    "Pelee",
+    "Lugh",
+    "Kitsune",
+    "Bastet",
+    "Ningursu"
+  ],
+  "hard": [
+    "Tefnut",
+    "Crom Cruach",
+    "Klanis",
+    "Zalmoxis",
+    "Mashu"
+  ]
+}
