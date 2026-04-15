@@ -1,0 +1,64 @@
+{
+  "easy": [
+    "Kangaroo",
+    "Bear",
+    "Wolf",
+    "Horse",
+    "Cow",
+    "Pig",
+    "Chicken",
+    "Turkey",
+    "Rabbit",
+    "Deer",
+    "Fox",
+    "Snake",
+    "Butterfly",
+    "Bee",
+    "Fish",
+    "Turtle",
+    "Frog",
+    "Toad",
+    "Hawk",
+    "Owl",
+    "Crocodile",
+    "Alligator",
+    "Raccoon",
+    "Squirrel",
+    "Hamster",
+    "Guinea Pig",
+    "Parrot",
+    "Goat",
+    "Sheep",
+    "Koala"
+  ],
+  "easy-medium": [
+    "Meerkat",
+    "Wolverine",
+    "Rattlesnake",
+    "Chimpanzee",
+    "Lemur",
+    "Hedgehog",
+    "Badger",
+    "Mongoose",
+    "Skunk",
+    "Ostrich"
+  ],
+  "medium": [
+    "Fossa",
+    "Aye-Aye",
+    "Quokka",
+    "Tarsier",
+    "Star-Nosed Mole"
+  ],
+  "medium-hard": [
+    "Okapi",
+    "Axolotl",
+    "Numbat",
+    "Takin",
+    "Dik-dik"
+  ],
+  "hard": [
+    "Naked mole rat",
+    "Vaquita"
+  ]
+}
