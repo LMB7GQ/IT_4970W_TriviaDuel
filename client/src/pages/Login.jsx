@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useGame } from '../contexts/GameContext';
+import GameLogo from '../components/GameLogo';
 
 function Login() {
   const { login, setScreen } = useGame();
@@ -13,36 +14,51 @@ function Login() {
       setMessage('Please enter both username and password.');
       return;
     }
-    setLoading(true);
+
     setMessage('');
-    const result = await login(username.trim(), password);
-    setLoading(false);
-    if (!result.success) {
-      setMessage(result.message);
+    setLoading(true);
+
+    try {
+      const result = await login(username.trim(), password);
+
+      if (!result.success) {
+        setMessage(result.message || 'Login failed');
+      }
+    } catch (err) {
+      setMessage('Connection error. Is the server running?');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
     <div className="join-section">
+      <GameLogo />
+
       <h2>Login</h2>
-      <input 
-        type="text" 
-        placeholder="Username" 
-        value={username} 
-        onChange={(e) => setUsername(e.target.value)} 
-        disabled={loading}
+
+      <input
+        type="text"
+        placeholder="Username"
+        value={username}
+        onChange={(e) => setUsername(e.target.value)}
       />
-      <input 
-        type="password" 
-        placeholder="Password" 
-        value={password} 
-        onChange={(e) => setPassword(e.target.value)} 
-        disabled={loading}
+
+      <input
+        type="password"
+        placeholder="Password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
       />
+
       <button onClick={handleLogin} disabled={loading}>
         {loading ? 'Logging in...' : 'Login'}
       </button>
-      <button onClick={() => setScreen('signup')} disabled={loading}>Create Account</button>
+
+      <button onClick={() => setScreen('signup')}>
+        Create Account
+      </button>
+
       {message && <p className="form-message">{message}</p>}
     </div>
   );
