@@ -1,0 +1,66 @@
+{
+  "easy": [
+    "Soccer",
+    "Basketball",
+    "Baseball",
+    "Tennis",
+    "Swimming",
+    "Golf",
+    "Football",
+    "Boxing",
+    "Olympics",
+    "Hockey",
+    "NFL",
+    "NBA",
+    "MLB",
+    "NHL",
+    "Super Bowl",
+    "World Series",
+    "Stanley Cup",
+    "Wimbledon",
+    "Marathon",
+    "Cycling",
+    "Rugby",
+    "Volleyball",
+    "Gymnastics",
+    "Wrestling",
+    "Ping Pong",
+    "Sprinting",
+    "Diving",
+    "Biathlon",
+    "Triathlon",
+    "Skating"
+  ],
+  "easy-medium": [
+    "PGA Championship",
+    "Grand Slam",
+    "Masters Tournament",
+    "Champions League",
+    "Ryder Cup",
+    "Golf US Open",
+    "Tennis Davis Cup",
+    "Olympic Games",
+    "Giro d'Italia",
+    "Stanley Cup Finals"
+  ],
+  "medium": [
+    "Sepak Takraw",
+    "Jai Alai",
+    "Kabaddi",
+    "Pankration",
+    "Bobsleigh"
+  ],
+  "medium-hard": [
+    "Pato",
+    "Floorball",
+    "Calcio Storico",
+    "Chinlone",
+    "Basque Pelota"
+  ],
+  "hard": [
+    "Caldeirão",
+    "Jallikattu",
+    "Kemari",
+    "Mallakhamb"
+  ]
+}

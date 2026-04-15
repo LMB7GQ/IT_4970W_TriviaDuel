@@ -1,0 +1,65 @@
+{
+  "easy": [
+    "The Bible",
+    "Harry Potter",
+    "Cinderella",
+    "The Hobbit",
+    "Pinocchio",
+    "Romeo and Juliet",
+    "Robinson Crusoe",
+    "The Wizard of Oz",
+    "Alice in Wonderland",
+    "Charlotte's Web",
+    "Green Eggs and Ham",
+    "The Jungle Book",
+    "The Little Prince",
+    "Scooby Doo",
+    "The Cat in the Hat",
+    "Where the Wild Things Are",
+    "Goodnight Moon",
+    "The Giving Tree",
+    "Corduroy",
+    "The Very Hungry Caterpillar",
+    "Curious George",
+    "The Boxcar Children",
+    "Heidi",
+    "The Secret Garden",
+    "The Wind in the Willows",
+    "The Adventures of Tom Sawyer",
+    "The Count of Monte Cristo",
+    "David Copperfield",
+    "Oliver Twist",
+    "Frankenstein"
+  ],
+  "easy-medium": [
+    "The Grapes of Wrath",
+    "The Scarlet Letter",
+    "Great Expectations",
+    "The War of the Worlds",
+    "The Time Machine",
+    "The Picture of Dorian Gray",
+    "Jane Eyre",
+    "Wuthering Heights",
+    "The Adventures of Huckleberry Finn"
+  ],
+  "medium": [
+    "Moby-Dick",
+    "Pride and Prejudice",
+    "The Great Gatsby",
+    "War and Peace"
+  ],
+  "medium-hard": [
+    "The Notebooks of Malte Laurids Brigge",
+    "The Charterhouse of Parma",
+    "The Red and the Black",
+    "The Go-Between",
+    "Steppenwolf"
+  ],
+  "hard": [
+    "Alphaville",
+    "Vathek",
+    "Gargantua",
+    "The Master and Margarita",
+    "A Philosophical Enquiry"
+  ]
+}

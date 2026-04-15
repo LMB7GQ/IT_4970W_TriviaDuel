@@ -1,0 +1,67 @@
+{
+  "easy": [
+    "Pizza",
+    "Hamburger",
+    "Ice Cream",
+    "Chocolate",
+    "Sushi",
+    "Tacos",
+    "Pasta",
+    "Fried Chicken",
+    "Apple",
+    "Bread",
+    "Cheese",
+    "Bacon",
+    "Donuts",
+    "Candy",
+    "Grapes",
+    "Cookies",
+    "Milk",
+    "Yogurt",
+    "Popcorn",
+    "Carrots",
+    "Banana",
+    "Orange",
+    "Watermelon",
+    "Steak",
+    "Potatoes",
+    "Salad",
+    "Eggs",
+    "Hot Dog",
+    "French Fries",
+    "Cereal"
+  ],
+  "easy-medium": [
+    "Tortellini",
+    "Cannoli",
+    "Quesadilla",
+    "Baguette",
+    "Muffin",
+    "Crepe",
+    "Empanada",
+    "Souvlaki",
+    "Tzatziki",
+    "Tacos al pastor"
+  ],
+  "medium": [
+    "Cassoulet",
+    "Falafel",
+    "Ratatouille",
+    "Biscotti",
+    "Feijoada"
+  ],
+  "medium-hard": [
+    "Gjetost",
+    "Ceviche",
+    "Gundruk",
+    "Kibbeh",
+    "Arepa"
+  ],
+  "hard": [
+    "Mopane worms",
+    "Civetta",
+    "Pandan",
+    "Khash",
+    "Shu mai"
+  ]
+}

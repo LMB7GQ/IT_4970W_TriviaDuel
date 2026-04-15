@@ -4,9 +4,26 @@
  * No DB fetch needed — update this list as categories are added to the DB.
  */
 const CATEGORIES = [
-  'Historical Figures', 'Countries', 'Brands', 'Celebrities', 'Movies',
-  'Video Games', 'Wars', 'Painters', 'Chemistry', 'Space',
-  'Technology', 'Biology', 'Human Body'
+  'Historical Figures',
+  'Movies',
+  'Brands',
+  'Wars',
+  'Food',
+  'Video Games',
+  'Technology',
+  'Mythology',
+  'Animals',
+  'Human Body',
+  'Sports',
+  'Books and Novels',
+  'Chemistry',
+  //'Law and Government',
+  //'Geography',
+  //'Countries',
+  //'Space',
+  //'Music',
+  //'Art',
+  //'Biology',
 ];
 
 module.exports = CATEGORIES;
