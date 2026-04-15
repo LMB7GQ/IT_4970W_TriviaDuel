@@ -3,6 +3,7 @@ import { useGame } from './contexts/GameContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import ModeSelect from './pages/ModeSelect';
+import UserProfile from './pages/UserProfile';
 import Waiting from './pages/Waiting';
 import BanPick from './pages/BanPick';
 import Playing from './pages/Playing';
@@ -17,6 +18,7 @@ function App() {
       {screen === 'login' && <Login />}
       {screen === 'signup' && <Signup />}
       {screen === 'modeSelect' && <ModeSelect />}
+      {screen === 'userProfile' && <UserProfile />}
       {screen === 'waiting' && <Waiting />}
       {screen === 'banPick' && <BanPick />}
       {screen === 'playing' && <Playing />}

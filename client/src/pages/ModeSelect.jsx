@@ -12,7 +12,8 @@ function ModeSelect() {
     startPractice,
     startBotGame,
     joinRanked,
-    isAuthenticated
+    isAuthenticated,
+    setScreen
   } = useGame();
 
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -52,6 +53,12 @@ function ModeSelect() {
           description="Challenge a specific player to a duel."
           onClick={() => setShowInviteModal(true)}
         />
+      )}
+
+      {isAuthenticated && (
+        <button onClick={() => setScreen('userProfile')}>
+          View Profile
+        </button>
       )}
 
       <button onClick={logout}>Logout</button>
