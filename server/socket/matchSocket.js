@@ -11,6 +11,34 @@ const pendingInvites  = {}; // inviteId → { from, to, timer }
 // ── Helpers ──────────────────────────────────────────────────────
 const generateInviteId = () => `invite_${Date.now()}_${Math.random().toString(36).slice(2)}`;
 
+const updateUserStats = async (username, isWinner) => {
+  if (!username) return;
+  const cleanUsername = username.toLowerCase().trim();
+  
+  try {
+    let user = await User.findOne({ username: cleanUsername });
+    if (!user) {
+      console.error(`[Stats] User not found for update: ${cleanUsername}`);
+      return;
+    }
+
+    if (isWinner) {
+      user.wins += 1;
+      user.streak += 1;
+      user.rank = Math.min(3000, user.rank + 25);
+    } else {
+      user.losses += 1;
+      user.streak = 0;
+      user.rank = Math.max(100, user.rank - 25);
+    }
+    
+    await user.save();
+    console.log(`[Stats] Updated ${cleanUsername}: Rank ${user.rank}, Wins ${user.wins}, Losses ${user.losses}`);
+  } catch (err) {
+    console.error(`[Stats] Failed to update user ${cleanUsername}:`, err.message);
+  }
+};
+
 const createRoom = async (io, player1, player2) => {
   const roomId    = `room_${Date.now()}`;
   const categories = getRandomCategories(5);
@@ -29,6 +57,7 @@ const createRoom = async (io, player1, player2) => {
       bans:  [],
       pick:  null,
       phase: 'ban1',
+      turn:  player1.socketId, 
     },
     categoryResults:  {},
     categoryScores:   {},
@@ -76,24 +105,31 @@ const initSocket = (io) => {
     }
 
     // ── joinGame ──────────────────────────────────────────────
-    socket.on('joinGame', async ({ playerName, rank = 500 }) => {
-      // Use stored rank from User DB if player exists; otherwise use passed rank
+    socket.on('joinGame', async ({ playerName, rank = 1000 }) => {
+      const cleanName = playerName ? playerName.toLowerCase().trim() : '';
+      if (!cleanName) return;
+
+      // Use stored rank from User DB if player exists
       let effectiveRank = rank;
-      if (playerName && typeof playerName === 'string') {
-        try {
-          const user = await User.findOne({ username: playerName.trim() });
-          if (user) effectiveRank = user.rank;
-        } catch (_) { /* ignore */ }
+      try {
+        const user = await User.findOne({ username: cleanName });
+        if (user) {
+          effectiveRank = user.rank;
+          console.log(`[Queue] Found existing user ${cleanName}, using DB rank: ${effectiveRank}`);
+        } else {
+          console.log(`[Queue] User ${cleanName} not found in DB, using provided rank: ${effectiveRank}`);
+        }
+      } catch (err) {
+        console.error(`[Queue] Error looking up user ${cleanName}:`, err.message);
       }
 
-      console.log(`${playerName} (rank: ${effectiveRank}) is joining...`);
-
+      console.log(`[Queue] ${playerName} (rank: ${effectiveRank}) is joining...`);
 
       // Remove if already in waiting list
       const existingIndex = waitingPlayers.findIndex(p => p.socketId === socket.id);
       if (existingIndex !== -1) waitingPlayers.splice(existingIndex, 1);
 
-      waitingPlayers.push({ socketId: socket.id, name: playerName, rank: effectiveRank }); //waitingPlayers is an array, this pushes player info into this "waiting list"
+      waitingPlayers.push({ socketId: socket.id, name: playerName, rank: effectiveRank }); 
 
       if (waitingPlayers.length >= 2) {
         const player1 = waitingPlayers.shift();
@@ -263,8 +299,7 @@ const initSocket = (io) => {
       const { banPick, playerOrder } = room;
       const [p1, p2] = playerOrder;
 
-      const expectedTurn = banPick.phase === 'ban1' ? p1 : p2;
-      if (socket.id !== expectedTurn) {
+      if (socket.id !== banPick.turn) {
         console.log(`Ban rejected — not ${socket.id}'s turn`);
         return;
       }
@@ -274,9 +309,11 @@ const initSocket = (io) => {
 
       if (banPick.phase === 'ban1') {
         banPick.phase = 'ban2';
+        banPick.turn  = p2;
         io.to(roomId).emit('banPickUpdate', { phase: 'ban2', bans: banPick.bans, pick: banPick.pick, turn: p2 });
       } else if (banPick.phase === 'ban2') {
         banPick.phase = 'pick';
+        banPick.turn  = p1;
         io.to(roomId).emit('banPickUpdate', { phase: 'pick', bans: banPick.bans, pick: banPick.pick, turn: p1 });
       }
     });
@@ -291,7 +328,7 @@ const initSocket = (io) => {
       const { banPick, playerOrder } = room;
       const [p1, p2] = playerOrder;
 
-      if (banPick.phase !== 'pick' || socket.id !== p1) {
+      if (banPick.phase !== 'pick' || socket.id !== banPick.turn) {
         console.log(`Pick rejected — not ${socket.id}'s turn or wrong phase`);
         return;
       }
@@ -315,7 +352,7 @@ const initSocket = (io) => {
     });
 
     // ── submitAnswer ──────────────────────────────────────────
-    socket.on('submitAnswer', ({ answer, responseTime }) => {
+    socket.on('submitAnswer', async ({ answer, responseTime }) => {
       const roomId = playerToRoom[socket.id];
       if (!roomId) return;
       const room = rooms[roomId];
@@ -398,34 +435,27 @@ const initSocket = (io) => {
             room.gameActive = false;
             console.log(`Match over — winner: ${room.players[matchWinner].name}`);
 
-            // Persist wins/losses to User collection (by username)
-            const winnerName = room.players[matchWinner].name;
-            const loserId = playerOrder.find((pid) => pid !== matchWinner);
-            const loserName = loserId ? room.players[loserId].name : null;
+            // Identify winner and loser by their authenticated usernames if possible
+            const winnerSocket = io.sockets.sockets.get(matchWinner);
+            const winnerName   = winnerSocket?.data?.user?.username || room.players[matchWinner].name;
 
-            const updateUserStats = async (username, isWinner) => {
-              try {
-                let user = await User.findOne({ username });
-                if (!user) {
-                  user = await User.create({ username, rank: 1000 });
-                }
-                if (isWinner) {
-                  user.wins += 1;
-                  user.streak += 1;
-                  user.rank = Math.min(3000, user.rank + 25);
-                } else {
-                  user.losses += 1;
-                  user.streak = 0;
-                  user.rank = Math.max(100, user.rank - 25);
-                }
-                await user.save();
-              } catch (err) {
-                console.error(`Failed to update user ${username}:`, err.message);
-              }
-            };
+            const loserId      = playerOrder.find((pid) => pid !== matchWinner);
+            const loserSocket  = loserId ? io.sockets.sockets.get(loserId) : null;
+            const loserName    = loserSocket?.data?.user?.username || (loserId ? room.players[loserId].name : null);
 
-            if (winnerName) updateUserStats(winnerName, true);
-            if (loserName) updateUserStats(loserName, false);
+            if (winnerName) await updateUserStats(winnerName, true);
+            if (loserName) await updateUserStats(loserName, false);
+          } else {
+            // Match continues — reset banPick for next round pick
+            // Alternate turn to the player who DID NOT pick this time
+            const lastPicker = room.banPick.turn; 
+            const nextPicker = playerOrder.find(id => id !== lastPicker);
+            
+            room.banPick.phase = 'pick';
+            room.banPick.turn  = nextPicker;
+            room.banPick.pick  = null;
+            
+            console.log(`Match continues — next picker: ${room.players[nextPicker].name}`);
           }
 
           io.to(roomId).emit('roundResults', {
@@ -434,14 +464,14 @@ const initSocket = (io) => {
             categoryWinner,
             categoryResults: room.categoryResults,
             matchWinner,
-            banPick: matchWinner ? undefined : room.banPick, // Send banPick state if match continues
+            banPick: room.banPick, 
           });
         }
       }
     });
 
     // ── disconnect ────────────────────────────────────────────
-    socket.on('disconnect', () => {
+    socket.on('disconnect', async () => {
       console.log(`User disconnected: ${socket.id}`);
 
       // Remove from connectedUsers
@@ -464,10 +494,24 @@ const initSocket = (io) => {
         }
       });
 
-      // Handle room cleanup
+      // Handle room cleanup and rank updates on disconnect
       const roomId = playerToRoom[socket.id];
       if (roomId && rooms[roomId]) {
-        const otherPlayerId = rooms[roomId].playerOrder.find((pid) => pid !== socket.id);
+        const room = rooms[roomId];
+        const otherPlayerId = room.playerOrder.find((pid) => pid !== socket.id);
+        
+        if (room.gameActive) {
+          room.gameActive = false;
+          const leaverName = room.players[socket.id]?.name;
+          const stayerName = otherPlayerId ? room.players[otherPlayerId]?.name : null;
+
+          console.log(`Player ${leaverName} disconnected during active game. Awarding win to ${stayerName}`);
+
+          // Await stats updates before room deletion
+          if (leaverName) await updateUserStats(leaverName, false);
+          if (stayerName) await updateUserStats(stayerName, true);
+        }
+
         if (otherPlayerId) {
           io.to(otherPlayerId).emit('opponentDisconnected', { message: 'Opponent disconnected' });
         }
