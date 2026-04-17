@@ -1,0 +1,65 @@
+{
+  "easy": [
+    "United States",
+    "China",
+    "France",
+    "Brazil",
+    "Australia",
+    "Japan",
+    "Russia",
+    "England",
+    "Canada",
+    "Germany",
+    "India",
+    "Italy",
+    "Mexico",
+    "South Africa",
+    "South Korea",
+    "Argentina",
+    "Turkey",
+    "Thailand",
+    "Poland",
+    "Sweden",
+    "Spain",
+    "Greece",
+    "Portugal",
+    "Vietnam",
+    "Norway",
+    "New Zealand",
+    "Egypt",
+    "Israel",
+    "Indonesia",
+    "Switzerland"
+  ],
+  "easy-medium": [
+    "Pakistan",
+    "Nigeria",
+    "Chile",
+    "Hungary",
+    "Sri Lanka",
+    "Croatia",
+    "Malaysia",
+    "Peru"
+  ],
+  "medium": [
+    "Mauritania",
+    "Tajikistan",
+    "Lesotho",
+    "Guatemala",
+    "Uzbekistan"
+  ],
+  "medium-hard": [
+    "Bhutan",
+    "Suriname",
+    "Grenada",
+    "Tuvalu",
+    "Vanuatu"
+  ],
+  "hard": [
+    "Batcelona",
+    "South Ossetia",
+    "Transnistria",
+    "Wyspa Manu",
+    "Zanzibar"
+  ]
+}

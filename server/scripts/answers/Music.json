@@ -1,0 +1,67 @@
+{
+  "easy": [
+    "The Beatles",
+    "Michael Jackson",
+    "Elvis Presley",
+    "Taylor Swift",
+    "Piano",
+    "Guitar",
+    "Drums",
+    "Violin",
+    "Mozart",
+    "Justin Bieber",
+    "Lady Gaga",
+    "Katy Perry",
+    "Bruno Mars",
+    "Ariana Grande",
+    "The Rolling Stones",
+    "AC/DC",
+    "Madonna",
+    "Simpsons Itchy",
+    "Nirvana",
+    "Billie Eilish",
+    "The Piano",
+    "Rhythm",
+    "Melody",
+    "Harmony",
+    "Song",
+    "Microphone",
+    "Headphones",
+    "Vinyl Records",
+    "Spotify",
+    "Radio"
+  ],
+  "easy-medium": [
+    "Fleetwood Mac",
+    "Stevie Nicks",
+    "Pink Floyd",
+    "Aretha Franklin",
+    "Eric Clapton",
+    "Radiohead",
+    "Tina Turner",
+    "Elton John",
+    "Bryan Adams",
+    "Etta James"
+  ],
+  "medium": [
+    "Chopin Nocturne",
+    "Billie Holiday",
+    "Satie Gymnopédie",
+    "Frank Sinatra",
+    "Ravel Bolero"
+  ],
+  "medium-hard": [
+    "Ravel's Bolero",
+    "Hindustani music",
+    "Theremin instrument",
+    "Klezmer band",
+    "Tchaikovsky's 1812 Overture"
+  ],
+  "hard": [
+    "Spectralism",
+    "Klangfarbenmelodie",
+    "Musique concrète",
+    "Guido d'Arezzo",
+    "Trombone Shorty"
+  ]
+}

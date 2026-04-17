@@ -1,0 +1,67 @@
+{
+  "easy": [
+    "Vincent Van Gogh",
+    "Mona Lisa",
+    "Leonardo da Vinci",
+    "Picasso",
+    "Michelangelo",
+    "The Scream",
+    "Frida Kahlo",
+    "The Starry Night",
+    "Claude Monet",
+    "The Last Supper",
+    "Rembrandt",
+    "The Creation of Adam",
+    "Pablo Picasso",
+    "Vincent Van Gogh's Chair",
+    "Girl with a Pearl Earring",
+    "Johannes Vermeer",
+    "The Thinker",
+    "Auguste Rodin",
+    "Guernica",
+    "Salvador Dali",
+    "The Vitruvian Man",
+    "Norman Rockwell",
+    "The Night Watch",
+    "Cezanne",
+    "The Venus de Milo",
+    "Edvard Munch",
+    "The Statue of David",
+    "Impressionism",
+    "Cubism",
+    "The Louvre"
+  ],
+  "easy-medium": [
+    "The Persistence of Memory",
+    "Rococo",
+    "Gothic Architecture",
+    "Pointillism",
+    "Kahlo's Self-Portraits",
+    "Art Nouveau",
+    "Fauvism",
+    "The Arnolfini Portrait",
+    "Las Meninas",
+    "The Night Café"
+  ],
+  "medium": [
+    "Kahlo",
+    "Gauguin",
+    "Matisse",
+    "Brancusi",
+    "Renaissance"
+  ],
+  "medium-hard": [
+    "De Stijl",
+    "Félix González-Torres",
+    "Ashcan School",
+    "Robert Rauschenberg",
+    "Synchromism"
+  ],
+  "hard": [
+    "Remodernism",
+    "Pittura Metafisica",
+    "Action Painting",
+    "Lyrical Abstraction",
+    "Purismo"
+  ]
+}

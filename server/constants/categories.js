@@ -17,13 +17,13 @@ const CATEGORIES = [
   'Sports',
   'Books and Novels',
   'Chemistry',
-  //'Law and Government',
-  //'Geography',
-  //'Countries',
-  //'Space',
-  //'Music',
-  //'Art',
-  //'Biology',
+  'Law and Government',
+  'Geography',
+  'Countries',
+  'Space',
+  'Music',
+  'Art',
+  'Biology',
 ];
 
 module.exports = CATEGORIES;

@@ -1,0 +1,66 @@
+{
+  "easy": [
+    "Sun",
+    "Moon",
+    "Earth",
+    "Mars",
+    "Stars",
+    "Milky Way",
+    "Astronaut",
+    "Rocket",
+    "Black Hole",
+    "Meteor",
+    "Saturn",
+    "Jupiter",
+    "Comet",
+    "Galaxy",
+    "Space Station",
+    "Alien",
+    "Solar System",
+    "Planet",
+    "Space Shuttle",
+    "Orbit",
+    "Cosmonaut",
+    "Asteroid",
+    "Nebula",
+    "Telescope",
+    "Rocket Ship",
+    "Space Suit",
+    "Gravity",
+    "Universe",
+    "Shooting Star",
+    "Space Probe"
+  ],
+  "easy-medium": [
+    "Kepler Space Telescope",
+    "Galileo Galilei",
+    "International Space Station",
+    "Mars Rover",
+    "Cosmos",
+    "Venus",
+    "Apollo Program",
+    "Spitzer Space Telescope",
+    "Kuiper Belt",
+    "Chandra X-ray Observatory"
+  ],
+  "medium": [
+    "Oort Cloud",
+    "Comet Hale-Bopp",
+    "Hubble Space Telescope",
+    "Gamma Ray Burst"
+  ],
+  "medium-hard": [
+    "Hohmann Transfer",
+    "Tully-Fisher Relation",
+    "Virgo Cluster",
+    "Dark Matter Halo",
+    "Hill Sphere"
+  ],
+  "hard": [
+    "Kip Thorne",
+    "Parker instability",
+    "Sunyaev-Zel'dovich effect",
+    "Osterbrock process",
+    "Bondi accretion"
+  ]
+}

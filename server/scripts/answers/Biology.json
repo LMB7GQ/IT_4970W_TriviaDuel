@@ -1,0 +1,66 @@
+{
+  "easy": [
+    "Mitochondria",
+    "Chloroplast",
+    "Photosynthesis",
+    "DNA",
+    "Cell",
+    "Evolution",
+    "Bacteria",
+    "Plant",
+    "Animal",
+    "Dinosaur",
+    "Fossil",
+    "Gene",
+    "Protein",
+    "Ecosystem",
+    "Habitat",
+    "Species",
+    "Biome",
+    "Nucleus",
+    "Ribosome",
+    "Lysosome",
+    "Golgi",
+    "Cytoplasm",
+    "Virus",
+    "Fungi",
+    "Mold",
+    "Yeast",
+    "Skeleton",
+    "Muscle",
+    "Nerve",
+    "Brain"
+  ],
+  "easy-medium": [
+    "Mitosis",
+    "Genetics",
+    "Chromosome",
+    "Natural selection",
+    "Endocrine system",
+    "Meiosis",
+    "Eukaryote",
+    "Taxonomy",
+    "Symbiosis"
+  ],
+  "medium": [
+    "Ecological succession",
+    "Gene expression",
+    "Homeostasis",
+    "Phytochrome",
+    "Taxonomic hierarchy"
+  ],
+  "medium-hard": [
+    "Sympatric speciation",
+    "Gene regulation",
+    "CRISPR-Cas9",
+    "Synthetic lethality",
+    "Hox gene clusters"
+  ],
+  "hard": [
+    "Müllerian mimicry",
+    "Thorson's rule",
+    "Felsenfeld's rules",
+    "Gompertz function",
+    "Hill equation"
+  ]
+}

@@ -1,0 +1,67 @@
+{
+  "easy": [
+    "Mississippi River",
+    "Lake Michigan",
+    "Atlantic Ocean",
+    "Mount Kilimanjaro",
+    "Rio Grande",
+    "Yellowstone Park",
+    "Statue of Liberty",
+    "Golden Gate Bridge",
+    "Great Barrier Reef",
+    "Pyramids of Giza",
+    "Tennessee River",
+    "Mount Olympus",
+    "Dead Sea",
+    "Victoria Falls",
+    "Columbia River",
+    "Arctic Ocean",
+    "Rocky Mountains",
+    "Great Lakes",
+    "Machu Picchu",
+    "Lake Tahoe",
+    "Niagara Falls",
+    "Denali",
+    "Sahara Desert",
+    "Amazon Rainforest",
+    "Grand Canyon",
+    "Eiffel Tower",
+    "Matterhorn",
+    "Panama Canal",
+    "Mount Everest",
+    "Yellow River"
+  ],
+  "easy-medium": [
+    "Bering Strait",
+    "Caspian Sea",
+    "Sierra Nevada",
+    "Rhine River",
+    "Atlas Mountains",
+    "Lake Baikal",
+    "Great Rift Valley",
+    "Patagonia",
+    "Andes Mountains",
+    "Amazon Basin"
+  ],
+  "medium": [
+    "Tasman Sea",
+    "Orinoco River",
+    "Amur River",
+    "Kerguelen Islands",
+    "Timor Sea"
+  ],
+  "medium-hard": [
+    "Jintang Bridge",
+    "Gotland Island",
+    "Kakadu National Park",
+    "Tasman Peninsula",
+    "Azov Sea"
+  ],
+  "hard": [
+    "Tumbes River",
+    "Gobi Desert",
+    "Khorasan Province",
+    "Tariq al-Wathif",
+    "Lake Manouane"
+  ]
+}
