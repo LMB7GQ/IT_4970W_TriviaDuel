@@ -7,16 +7,17 @@
  *   800  – 1399 → medium
  *   1400 – 1999 → medium-hard
  *   2000 – 3000 → hard
+ * updated 4-16 by Ian
  */
 const rankToDifficulty = (rank) => {
   const r = Number(rank);
 
   if (isNaN(r)) return 'easy'; // safe default
 
-  if (r < 400)  return 'easy';
-  if (r < 800)  return 'easy-medium';
-  if (r < 1400) return 'medium';
-  if (r < 2000) return 'medium-hard';
+  if (r < 4000)  return 'easy';
+  if (r < 8000)  return 'easy-medium';
+  if (r < 12000) return 'medium';
+  if (r < 16000) return 'medium-hard';
   return 'hard';
 };
 
