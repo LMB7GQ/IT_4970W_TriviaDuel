@@ -12,9 +12,12 @@ const initSocket     = require('./socket/matchSocket');
 const { socketAuth } = require('./middleware/auth');
 const app    = express();
 const server = http.createServer(app);
-const io     = socketIo(server, {
+const io = socketIo(server, {
   cors: {
-    origin: ['http://localhost:3000', 'https://main.d3k5x7fpwc60ay.amplifyapp.com', "null", null], 
+    origin: [
+      'http://localhost:3000',
+      'https://main.d3k5x7fpwc60ay.amplifyapp.com',
+    ],
     methods: ['GET', 'POST'],
   },
 });
