@@ -14,7 +14,7 @@ const app    = express();
 const server = http.createServer(app);
 const io     = socketIo(server, {
   cors: {
-    origin: ['http://localhost:3000', "null", null], 
+    origin: ['http://localhost:3000', 'https://main.d3k5x7fpwc60ay.amplifyapp.com', "null", null], 
     methods: ['GET', 'POST'],
   },
 });
@@ -31,7 +31,12 @@ mongoose
   });
 
 // ── Middleware ──────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://main.d3k5x7fpwc60ay.amplifyapp.com',
+  ],
+}));
 app.use(express.json());
 
 // ── REST Routes ─────────────────────────────────────────────────
