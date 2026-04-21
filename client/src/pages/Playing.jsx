@@ -9,11 +9,45 @@ function Playing() {
     playerScore, opponentScore,
     timeLeft,
     botAnswered,
-    handleSubmitAnswer
+    handleSubmitAnswer,
+    resetGame
   } = useGame();
 
+  const handleQuit = () => {
+    if (window.confirm("Are you sure you want to quit this game?")) {
+      resetGame();
+    }
+  };
+
   return (
-    <div className="game-section">
+    <div className="game-section" style={{ position: 'relative' }}>
+      {(gameMode === 'practice' || gameMode === 'bot') && (
+        <button 
+          onClick={handleQuit}
+          style={{
+            position: 'absolute',
+            top: '10px',
+            right: '10px',
+            width: '50px',
+            height: '50px',
+            backgroundColor: '#d32f2f',
+            color: 'white',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '12px',
+            fontWeight: 'bold',
+            borderRadius: '4px',
+            border: 'none',
+            cursor: 'pointer',
+            zIndex: 10,
+            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          }}
+        >
+          Quit
+        </button>
+      )}
+
       <div className="matchup-line">
         {gameMode === 'practice' ? `${playerName} Practice` : `${playerName} vs ${roomInfo?.opponent?.name || 'Bot Knight'}`}
       </div>

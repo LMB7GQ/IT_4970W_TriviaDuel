@@ -2,7 +2,7 @@ import React from 'react';
 import { useGame } from '../contexts/GameContext';
 
 function UserProfile() {
-    const { userData, setScreen } = useGame();
+    const { userData, setScreen, logout } = useGame();
 
     // show a loading stat if data hasn't arrived yet
     if (!userData) {
@@ -39,6 +39,9 @@ function UserProfile() {
 
             <button onClick={() => setScreen('modeSelect')}>
                 Back to Menu
+            </button>
+            <button onClick={logout}>
+                Logout
             </button>
         </div>
     );
