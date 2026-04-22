@@ -25,11 +25,11 @@ const updateUserStats = async (username, isWinner) => {
     if (isWinner) {
       user.wins += 1;
       user.streak += 1;
-      user.rank = Math.min(3000, user.rank + 25);
+      user.rank = Math.min(20000, user.rank + 100);
     } else {
       user.losses += 1;
       user.streak = 0;
-      user.rank = Math.max(100, user.rank - 25);
+      user.rank = Math.max(100, user.rank - 50);
     }
     
     await user.save();
