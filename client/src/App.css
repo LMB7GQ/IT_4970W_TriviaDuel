@@ -2,15 +2,36 @@ body {
   margin: 0;
   font-family: "Segoe UI", Arial, sans-serif;
   color: #f5e6c8;
+}
 
+
+.background{
+  --bg-image: url("./assets/background.jpg");
+  min-height: 100vh;
   background:
     linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.55)),
-    url("./assets/background.jpg");
+    var(--bg-image);
 
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+}
+
+.background_default{
+  --bg-image: url("./assets/background.jpg");
+}
+
+.background_1v1{
+  --bg-image: url("./assets/1v1background.jpg");
+}
+
+.background_bot{
+  --bg-image: url("./assets/botbackground.png");
+}
+
+.background_solo{
+  --bg-image: url("./assets/solobackground.jpg");
 }
 
 .App,

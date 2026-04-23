@@ -11,10 +11,22 @@ import Finished from './pages/Finished';
 import './App.css';
 
 function App() {
-  const { screen } = useGame();
+  const { screen, gameMode } = useGame();
+
+  const backgroundClass = {
+    practice: "background_solo",
+    bot: "background_bot",
+    ranked: "background_1v1"
+  };
+
+  const activeBackground = 
+    screen === 'modeSelect' || !gameMode ? "background_default" :
+      backgroundClass[gameMode] || "background_default";
 
   return (
-    <div className={screen === 'finished' ? 'app-container finished-page' : 'app-container'}>
+    <div className={`background ${activeBackground} ${
+        screen === 'finished' ? 'app-container finished-page' : 'app-container'
+      }`}>
       {screen === 'login' && <Login />}
       {screen === 'signup' && <Signup />}
       {screen === 'modeSelect' && <ModeSelect />}
