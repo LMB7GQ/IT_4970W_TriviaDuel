@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 const GameContext = createContext();
 
 export const useGame = () => useContext(GameContext);
@@ -11,7 +13,7 @@ export const GameProvider = ({ children }) => {
   const [gameMode, setGameMode] = useState(null);
 
   const [playerName, setPlayerName] = useState('');
-  const [playerRank, setPlayerRank] = useState(1000);
+  const [playerRank] = useState(1000);
   const [token, setToken] = useState(localStorage.getItem('token') || null);
   const [isAuthenticated, setIsAuthenticated] = useState(!!token);
   const [userData, setUserData] = useState(null);
@@ -39,30 +41,6 @@ export const GameProvider = ({ children }) => {
   const [finishReason, setFinishReason] = useState('normal'); // 'normal' | 'disconnect'
   const [categoryWinnerName, setCategoryWinnerName] = useState(null);
 
-  const fetchUserData = useCallback(async () => {
-    if (!token) return;
-  
-    try {
-      console.log('[Game] Refreshing user data...');
-      const response = await fetch('http://localhost:5000/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-  
-      if (!response.ok) return;
-  
-      const data = await response.json();
-  
-      if (data.user) {
-        setUserData(data.user);
-        setPlayerName(data.user.username);
-        setPlayerRank(data.user.rank);
-        console.log('[Game] User data refreshed:', data.user.rank);
-      }
-    } catch (err) {
-      console.error('Fetch user data error:', err);
-    }
-  }, [token]);
-
   useEffect(() => {
     if (isAuthenticated && screen === 'login') {
       setScreen('modeSelect');
@@ -70,9 +48,9 @@ export const GameProvider = ({ children }) => {
   }, [isAuthenticated, screen]);
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io(API_URL);
     setSocket(newSocket);
-    console.log('[Socket] Initialized connection to http://localhost:5000');
+    console.log(`[Socket] Initialized connection to ${API_URL}`);
 
     return () => newSocket.disconnect();
   }, []);
@@ -81,7 +59,7 @@ export const GameProvider = ({ children }) => {
     try {
       setLoading(true);
       console.log(`[Solo] Fetching next question (Rank: ${playerRank})...`);
-      const response = await fetch(`http://localhost:5000/api/questions/random?rank=${playerRank}`);
+      const response = await fetch(`${API_URL}/api/questions/random?rank=${playerRank}`);
       if (!response.ok) throw new Error('Failed to fetch');
 
       const data = await response.json();
@@ -181,11 +159,11 @@ export const GameProvider = ({ children }) => {
     socket.on('roundResults', (data) => {
       console.log('[Socket] Event: roundResults', data);
       setRoundResults(data.results);
+      setMyResult(null);
 
       if (roomInfo?.myId && data.results?.[roomInfo.myId]) {
         setPlayerScore(data.results[roomInfo.myId].score);
       }
-      // ... (rest of score logic) ...
 
       const oppId =
         roomInfo?.myId && data.results
@@ -228,34 +206,20 @@ export const GameProvider = ({ children }) => {
           setMatchResult('draw');
         }
       
-        setTimeout(() => {
-          fetchUserData();
-          setMyResult(null);
-          setScreen('finished');
-        }, 2000);
+        setTimeout(() => setScreen('finished'), 2000);
       }
        else if (!data.categoryDone) {
         setTimeout(() => {
           setCurrentQuestion(data.nextQuestion);
           setQuestionIndex(data.questionIndex);
           setRoundResults(null);
-          setMyResult(null);
           setTimeLeft(15);
         }, 2000);
       } else {
         console.log('[Socket] Category completed, returning to ban/pick phase');
-        
-        if (data.categoryResults) {
-          setRoomInfo((prev) => ({ ...prev, categoryResults: data.categoryResults }));
-        }
-        if (data.banPick) {
-          setBanPick(data.banPick);
-        }
-
         setTimeout(() => {
           setCurrentQuestion(null);
           setRoundResults(null);
-          setMyResult(null);
           setScreen('banPick');
         }, 2000);
       }
@@ -267,7 +231,6 @@ export const GameProvider = ({ children }) => {
       setMatchResult('win');
       setRoundResults(null);
       setMyResult(null);
-      fetchUserData();
       setTimeout(() => setScreen('finished'), 500);
     });
 
@@ -314,7 +277,7 @@ export const GameProvider = ({ children }) => {
       socket.off('inviteError');
       socket.off('newMessage');
     };
-  }, [socket, roomInfo, resetGame, fetchUserData]);
+  }, [socket, roomInfo, resetGame, screen]);
 
   const handleSubmitAnswer = useCallback(async (timeExpired = false) => {
     const submittedAnswer = timeExpired ? '' : userAnswer;
@@ -339,7 +302,7 @@ export const GameProvider = ({ children }) => {
 
     try {
       console.log(`[Solo] Validating answer for question ${currentQuestion._id}...`);
-      const resp = await fetch(`http://localhost:5000/api/questions/${currentQuestion._id}/check`, {
+      const resp = await fetch(`${API_URL}/api/questions/${currentQuestion._id}/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userAnswer: submittedAnswer })
@@ -558,7 +521,7 @@ export const GameProvider = ({ children }) => {
 
   const login = useCallback(async (username, password) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -594,7 +557,7 @@ export const GameProvider = ({ children }) => {
 
   const signup = useCallback(async (username, password) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/users`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -627,6 +590,27 @@ export const GameProvider = ({ children }) => {
       return { success: false, message: 'Network error' };
     }
   }, []);
+
+  const fetchUserData = useCallback(async () => {
+    if (!token) return;
+  
+    try {
+      const response = await fetch(`${API_URL}/api/users/me`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+  
+      if (!response.ok) return;
+  
+      const data = await response.json();
+  
+      if (data.user) {
+        setUserData(data.user);
+        setPlayerName(data.user.username);
+      }
+    } catch (err) {
+      console.error('Fetch user data error:', err);
+    }
+  }, [token]);
 
   useEffect(() => {
     if (isAuthenticated && screen === 'login') {
