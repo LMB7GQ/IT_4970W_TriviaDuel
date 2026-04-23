@@ -34,15 +34,14 @@ async function createUser(req, res) {
       return res.status(400).json({ error: 'Password must be at least 4 characters' });
     }
 
-    const normalizedUsername = username.trim().toLowerCase();
-    const existing = await User.findOne({ username: normalizedUsername });
+    const existing = await User.findOne({ username: username.trim() });
     if (existing) {
       return res.status(400).json({ error: 'Username already exists' });
     }
 
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
     const user = await User.create({
-      username: normalizedUsername,
+      username: username.trim(),
       passwordHash,
     });
 
@@ -70,7 +69,7 @@ async function login(req, res) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
-    const user = await User.findOne({ username: username.trim().toLowerCase() });
+    const user = await User.findOne({ username: username.trim() });
     if (!user) {
       return res.status(401).json({ error: 'Invalid username or password' });
     }
