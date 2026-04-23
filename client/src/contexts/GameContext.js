@@ -521,7 +521,7 @@ export const GameProvider = ({ children }) => {
 
   const login = useCallback(async (username, password) => {
     try {
-      const response = await fetch(`${API_URL}/api/users/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
