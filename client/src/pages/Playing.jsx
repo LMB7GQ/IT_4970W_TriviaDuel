@@ -10,43 +10,117 @@ function Playing() {
     timeLeft,
     botAnswered,
     handleSubmitAnswer,
-    resetGame
+    resetGame,
+    leaveMatch
   } = useGame();
 
-  const handleQuit = () => {
-    if (window.confirm("Are you sure you want to quit this game?")) {
+  const [showQuitModal, setShowQuitModal] = React.useState(false);
+
+  const handleQuitConfirm = () => {
+    if (gameMode === 'ranked') {
+      leaveMatch();
+    } else {
       resetGame();
     }
+    setShowQuitModal(false);
   };
 
   return (
     <div className="game-section" style={{ position: 'relative' }}>
-      {(gameMode === 'practice' || gameMode === 'bot') && (
-        <button 
-          onClick={handleQuit}
-          style={{
-            position: 'absolute',
-            top: '10px',
-            right: '10px',
-            width: '50px',
-            height: '50px',
-            backgroundColor: '#d32f2f',
-            color: 'white',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '12px',
-            fontWeight: 'bold',
-            borderRadius: '4px',
-            border: 'none',
-            cursor: 'pointer',
-            zIndex: 10,
-            boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-          }}
-        >
-          Quit
-        </button>
+      {/* Quit Confirmation Modal */}
+      {showQuitModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+          backdropFilter: 'blur(4px)'
+        }}>
+          <div style={{
+            backgroundColor: '#1a1a2e',
+            padding: '40px',
+            borderRadius: '12px',
+            textAlign: 'center',
+            boxShadow: '0 10px 30px rgba(0,0,0,0.5)',
+            border: '2px solid #e94560',
+            maxWidth: '400px',
+            width: '90%'
+          }}>
+            <h2 style={{ color: '#e94560', marginBottom: '20px', fontSize: '24px' }}>
+              {gameMode === 'ranked' ? 'Forfeit Match?' : 'Quit Game?'}
+            </h2>
+            <p style={{ color: '#fff', marginBottom: '30px', fontSize: '16px', lineHeight: '1.5' }}>
+              {gameMode === 'ranked' 
+                ? "Are you sure you want to leave? This will count as a loss and your rank will decrease." 
+                : "Are you sure you want to leave this session and go back to the menu?"}
+            </p>
+            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center' }}>
+              <button 
+                onClick={handleQuitConfirm}
+                style={{ 
+                  backgroundColor: '#e94560', 
+                  color: 'white', 
+                  padding: '12px 24px', 
+                  borderRadius: '6px', 
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '14px',
+                  transition: 'transform 0.2s'
+                }}
+              >
+                {gameMode === 'ranked' ? 'Leave Match' : 'Yes, Quit'}
+              </button>
+              <button 
+                onClick={() => setShowQuitModal(false)}
+                style={{ 
+                  backgroundColor: '#4e4e6a', 
+                  color: 'white', 
+                  padding: '12px 24px', 
+                  borderRadius: '6px', 
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '14px'
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
+      <button 
+        onClick={() => setShowQuitModal(true)}
+        style={{
+          position: 'absolute',
+          top: '10px',
+          right: '10px',
+          width: '50px',
+          height: '50px',
+          backgroundColor: '#d32f2f',
+          color: 'white',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: '12px',
+          fontWeight: 'bold',
+          borderRadius: '4px',
+          border: 'none',
+          cursor: 'pointer',
+          zIndex: 10,
+          boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+        }}
+      >
+        Quit
+      </button>
 
       <div className="matchup-line">
         {gameMode === 'practice' ? `${playerName} Practice` : `${playerName} vs ${roomInfo?.opponent?.name || 'Bot Knight'}`}

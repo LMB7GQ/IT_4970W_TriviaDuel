@@ -150,6 +150,50 @@ const initSocket = (io) => {
       }
     });
 
+    // ── leaveRoom (Forfeit) ──────────────────────────────────
+    socket.on('leaveRoom', async () => {
+      const roomId = playerToRoom[socket.id];
+      if (!roomId || !rooms[roomId]) return;
+
+      const room = rooms[roomId];
+      console.log(`User ${socket.id} requested to leave room ${roomId}`);
+
+      const otherPlayerId = room.playerOrder.find((pid) => pid !== socket.id);
+      const leaverName = room.players[socket.id]?.name;
+      const stayerName = otherPlayerId ? room.players[otherPlayerId]?.name : null;
+
+      // 1. Notify opponent IMMEDIATELY so their UI updates
+      if (otherPlayerId) {
+        io.to(otherPlayerId).emit('opponentDisconnected', { 
+          message: 'Opponent has forfeited the match',
+          forfeit: true
+        });
+      }
+
+      // 2. Handle rank updates and room closure
+      if (room.gameActive) {
+        room.gameActive = false;
+
+        // Use authenticated usernames for updates if possible
+        const leaverSocket = socket;
+        const authLeaverName = leaverSocket.data?.user?.username || leaverName;
+
+        const stayerSocket = otherPlayerId ? io.sockets.sockets.get(otherPlayerId) : null;
+        const authStayerName = stayerSocket?.data?.user?.username || stayerName;
+
+        console.log(`Player ${authLeaverName} forfeited. Awarding win to ${authStayerName}`);
+
+        // Perform updates in background or await if we want to ensure consistency before room deletion
+        if (authLeaverName) await updateUserStats(authLeaverName, false);
+        if (authStayerName) await updateUserStats(authStayerName, true);
+      }
+
+      delete rooms[roomId];
+      delete playerToRoom[socket.id];
+      // Keep otherPlayerId in playerToRoom for a moment longer if needed, 
+      // though room is already gone.
+    });
+
     // ── sendInvite ────────────────────────────────────────────
     // Logged in user invites another user by username
     socket.on('sendInvite', ({ toUsername }) => {

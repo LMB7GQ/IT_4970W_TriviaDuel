@@ -69,6 +69,13 @@ export const GameProvider = ({ children }) => {
     }
   }, [isAuthenticated, screen]);
 
+  // Refresh user data on mount if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserData();
+    }
+  }, []); // Only runs once when the app loads
+
   useEffect(() => {
     const newSocket = io('http://localhost:5000');
     setSocket(newSocket);
@@ -314,7 +321,7 @@ export const GameProvider = ({ children }) => {
       socket.off('inviteError');
       socket.off('newMessage');
     };
-  }, [socket, roomInfo, resetGame, fetchUserData]);
+  }, [socket, resetGame, fetchUserData]);
 
   const handleSubmitAnswer = useCallback(async (timeExpired = false) => {
     const submittedAnswer = timeExpired ? '' : userAnswer;
@@ -530,6 +537,20 @@ export const GameProvider = ({ children }) => {
     resetGame();
   }, [socket, resetGame]);
 
+  const leaveMatch = useCallback(() => {
+    console.log('[Game] Leaving (forfeiting) current match...');
+    if (socket && socket.connected) {
+      socket.emit('leaveRoom');
+    }
+    // Don't call resetGame immediately for the leaver, 
+    // just put them back to mode select
+    setScreen('modeSelect');
+    setGameMode(null);
+    setRoomInfo(null);
+    setBanPick(null);
+    setCurrentQuestion(null);
+  }, [socket]);
+
   const sendInvite = useCallback((toUsername) => {
     if (!socket || !isAuthenticated) return;
     console.log('[Socket] Emitting sendInvite:', toUsername);
@@ -634,6 +655,13 @@ export const GameProvider = ({ children }) => {
     }
   }, [isAuthenticated, screen]);
 
+  // Refresh user data on mount if already authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUserData();
+    }
+  }, []); // Only runs once when the app loads
+
   const logout = useCallback(() => {
     setToken(null);
     setIsAuthenticated(false);
@@ -674,6 +702,7 @@ export const GameProvider = ({ children }) => {
     startBotGame,
     startPractice,
     cancelSearch,
+    leaveMatch,
     pendingInvites,
     setPendingInvites,
     sendInvite,
