@@ -63,9 +63,11 @@ function ModeSelect() {
 
       <button onClick={logout}>Logout</button>
 
-      {showInviteModal && (
-        <InviteModal onClose={() => setShowInviteModal(false)} />
-      )}
+      {showInviteModal && ( <InviteModal 
+    isOpen={showInviteModal}   // ← add this
+    onClose={() => setShowInviteModal(false)} 
+  />
+)}
     </div>
   );
 }

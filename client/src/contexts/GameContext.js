@@ -78,13 +78,39 @@ export const GameProvider = ({ children }) => {
     }
   }, []); // Only runs once when the app loads
 
+  // Initialize socket connection
   useEffect(() => {
-    const newSocket = io(API_URL);
-    setSocket(newSocket);
-    console.log(`[Socket] Initialized connection to ${API_URL}`);
+    const connectSocket = () => {
+      const currentToken = localStorage.getItem('token');
+      const newSocket = io(API_URL, {
+        auth: {
+          token: currentToken || null
+        }
+      });
+      setSocket(newSocket);
+      console.log(`[Socket] Initialized connection to ${API_URL}`);
+      return newSocket;
+    };
 
+    const newSocket = connectSocket();
     return () => newSocket.disconnect();
   }, []);
+
+  // Reconnect socket with new token after authentication
+  const reconnectSocket = useCallback(() => {
+    if (socket) {
+      socket.disconnect();
+    }
+    const currentToken = localStorage.getItem('token');
+    const newSocket = io(API_URL, {
+      auth: {
+        token: currentToken || null
+      }
+    });
+    setSocket(newSocket);
+    console.log(`[Socket] Reconnected with token`);
+    return newSocket;
+  }, [socket]);
 
   const fetchNextSoloQuestion = useCallback(async () => {
     try {
@@ -579,41 +605,44 @@ export const GameProvider = ({ children }) => {
     socket.emit('sendMessage', { roomId: roomInfo.roomId, message });
   }, [socket, roomInfo]);
 
-  const login = useCallback(async (username, password) => {
-    try {
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-  
-      const data = await response.json();
-  
-      if (response.ok) {
-        const receivedToken = data.token || null;
-        const receivedUser = data.user || { username };
-  
-        if (receivedToken) {
-          setToken(receivedToken);
-          localStorage.setItem('token', receivedToken);
-        }
-  
-        setPlayerName(receivedUser.username || username);
-        setUserData(receivedUser);
-        setIsAuthenticated(true);
-        setScreen('modeSelect');
-  
-        return { success: true };
+const login = useCallback(async (username, password) => {
+  try {
+    const response = await fetch(`${API_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      const receivedToken = data.token || null;
+      const receivedUser = data.user || { username };
+
+      if (receivedToken) {
+        setToken(receivedToken);
+        localStorage.setItem('token', receivedToken);
       }
-  
-      return {
-        success: false,
-        message: data.error || data.message || 'Invalid username or password'
-      };
-    } catch (err) {
-      return { success: false, message: 'Network error' };
+
+      setPlayerName(receivedUser.username || username);
+      setUserData(receivedUser);
+      setIsAuthenticated(true);
+      setScreen('modeSelect');
+
+      // ✅ ADD THIS — reconnect socket with the new token
+      reconnectSocket();
+
+      return { success: true };
     }
-  }, []);
+
+    return {
+      success: false,
+      message: data.error || data.message || 'Invalid username or password'
+    };
+  } catch (err) {
+    return { success: false, message: 'Network error' };
+  }
+}, [reconnectSocket]);  // ← add reconnectSocket to dependency array
 
   const signup = useCallback(async (username, password) => {
     try {
@@ -628,6 +657,8 @@ export const GameProvider = ({ children }) => {
       if (response.ok) {
         const receivedToken = data.token || null;
         const receivedUser = data.user || { username };
+        reconnectSocket();
+        return { success: true };
   
         if (receivedToken) {
           setToken(receivedToken);
@@ -639,6 +670,9 @@ export const GameProvider = ({ children }) => {
         setIsAuthenticated(true);
         setScreen('modeSelect');
   
+        // Reconnect socket with new token after auth
+        reconnectSocket();
+  
         return { success: true };
       }
   
@@ -649,7 +683,7 @@ export const GameProvider = ({ children }) => {
     } catch (err) {
       return { success: false, message: 'Network error' };
     }
-  }, []);
+  }, [reconnectSocket]);
 
   useEffect(() => {
     if (isAuthenticated && screen === 'login') {
