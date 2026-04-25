@@ -1,6 +1,8 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 const GameContext = createContext();
 
 export const useGame = () => useContext(GameContext);
@@ -44,7 +46,7 @@ export const GameProvider = ({ children }) => {
   
     try {
       console.log('[Game] Refreshing user data...');
-      const response = await fetch('http://localhost:5000/api/auth/me', {
+      const response = await fetch(`${API_URL}/api/auth/me`, {
         headers: { Authorization: `Bearer ${token}` }
       });
   
@@ -77,9 +79,9 @@ export const GameProvider = ({ children }) => {
   }, []); // Only runs once when the app loads
 
   useEffect(() => {
-    const newSocket = io('http://localhost:5000');
+    const newSocket = io(API_URL);
     setSocket(newSocket);
-    console.log('[Socket] Initialized connection to http://localhost:5000');
+    console.log(`[Socket] Initialized connection to ${API_URL}`);
 
     return () => newSocket.disconnect();
   }, []);
@@ -88,7 +90,7 @@ export const GameProvider = ({ children }) => {
     try {
       setLoading(true);
       console.log(`[Solo] Fetching next question (Rank: ${playerRank})...`);
-      const response = await fetch(`http://localhost:5000/api/questions/random?rank=${playerRank}`);
+      const response = await fetch(`${API_URL}/api/questions/random?rank=${playerRank}`);
       if (!response.ok) throw new Error('Failed to fetch');
 
       const data = await response.json();
@@ -346,7 +348,7 @@ export const GameProvider = ({ children }) => {
 
     try {
       console.log(`[Solo] Validating answer for question ${currentQuestion._id}...`);
-      const resp = await fetch(`http://localhost:5000/api/questions/${currentQuestion._id}/check`, {
+      const resp = await fetch(`${API_URL}/api/questions/${currentQuestion._id}/check`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userAnswer: submittedAnswer })
@@ -579,7 +581,7 @@ export const GameProvider = ({ children }) => {
 
   const login = useCallback(async (username, password) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/login', {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
@@ -615,7 +617,7 @@ export const GameProvider = ({ children }) => {
 
   const signup = useCallback(async (username, password) => {
     try {
-      const response = await fetch('http://localhost:5000/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password })
