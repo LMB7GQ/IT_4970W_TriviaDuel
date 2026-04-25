@@ -3,16 +3,18 @@ import { useGame } from '../contexts/GameContext';
 
 function Finished() {
   const {
-    playerName,
-    playerScore,
-    opponentScore,
-    roomInfo,
-    gameMode,
-    resetGame,
-    matchResult,
-    startBotGame,
-    finishReason
-  } = useGame();
+  playerName,
+  playerScore,
+  opponentScore,
+  playerCategoryWins,
+  opponentCategoryWins,
+  roomInfo,
+  gameMode,
+  resetGame,
+  matchResult,
+  startBotGame,
+  finishReason
+} = useGame();
 
   const opponentName = roomInfo?.opponent?.name || 'Bot Knight';
 
@@ -43,7 +45,7 @@ function Finished() {
     }
   }
 
-  return (
+ return (
     <div className={`end-screen ${matchResult || ''}`}>
       <div className="end-screen-overlay">
         <div className="end-screen-content">
@@ -53,13 +55,23 @@ function Finished() {
           <div className="end-screen-scoreboard">
             <div className="end-screen-score-card">
               <div className="end-screen-name">{playerName}</div>
-              <div className="end-screen-score">Final Score: {playerScore}</div>
+              <div className="end-screen-score">
+                {gameMode === 'ranked'
+                  ? `Category Wins: ${playerCategoryWins}`
+                  : `Final Score: ${playerScore}`
+                }
+              </div>
             </div>
 
             {gameMode !== 'practice' && (
               <div className="end-screen-score-card">
                 <div className="end-screen-name">{opponentName}</div>
-                <div className="end-screen-score">Final Score: {opponentScore}</div>
+                <div className="end-screen-score">
+                  {gameMode === 'ranked'
+                    ? `Category Wins: ${opponentCategoryWins}`
+                    : `Final Score: ${opponentScore}`
+                  }
+                </div>
               </div>
             )}
           </div>
@@ -68,7 +80,6 @@ function Finished() {
             {gameMode === 'bot' && (
               <button onClick={startBotGame}>Play Bot Again</button>
             )}
-
             <button onClick={resetGame}>Back to Menu</button>
           </div>
         </div>

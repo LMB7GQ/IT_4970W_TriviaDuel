@@ -45,29 +45,32 @@ const createRoom = async (io, player1, player2) => {
   const { questionsForClient, questionsForServer } = await fetchMatchQuestions(categories);
 
   rooms[roomId] = {
-    roomId,
-    categories,
-    playerOrder: [player1.socketId, player2.socketId],
-    players: {
-      [player1.socketId]: { id: player1.socketId, name: player1.name, rank: player1.rank, score: 0 },
-      [player2.socketId]: { id: player2.socketId, name: player2.name, rank: player2.rank, score: 0 },
-    },
-    questionsForServer,
-    banPick: {
-      bans:  [],
-      pick:  null,
-      phase: 'ban1',
-      turn:  player1.socketId, 
-    },
-    categoryResults:  {},
-    categoryScores:   {},
-    currentCategory:  null,
-    currentQuestionIndex: 0,
-    roundAnswers:     {},
-    gameActive:       true,
-    chat:             [], // lobby + in-match chat history (ephemeral)
-  };
-
+  roomId,
+  categories,
+  playerOrder: [player1.socketId, player2.socketId],
+  players: {
+    [player1.socketId]: { id: player1.socketId, name: player1.name, rank: player1.rank, score: 0 },
+    [player2.socketId]: { id: player2.socketId, name: player2.name, rank: player2.rank, score: 0 },
+  },
+  questionsForServer,
+  banPick: {
+    bans:     [],
+    pick:     null,
+    phase:    'ban1',
+    turn:     player1.socketId,
+    p1Banner: player1.socketId,
+    p2Banner: player2.socketId,
+    isReserve: false,
+  },
+   categoryResults:  {},
+  categoryScores:   {},
+  playedCategories: [],  // ← replaces usedCategories + reserveCategories
+  currentCategory:  null,
+  currentQuestionIndex: 0,
+  roundAnswers:     {},
+  gameActive:       true,
+  chat:             [],
+};
   playerToRoom[player1.socketId] = roomId;
   playerToRoom[player2.socketId] = roomId;
 
@@ -335,182 +338,279 @@ const initSocket = (io) => {
 
     // ── banCategory ───────────────────────────────────────────
     socket.on('banCategory', ({ category }) => {
-      const roomId = playerToRoom[socket.id];
-      if (!roomId) return;
-      const room = rooms[roomId];
-      if (!room) return;
+  const roomId = playerToRoom[socket.id];
+  if (!roomId) return;
+  const room = rooms[roomId];
+  if (!room) return;
 
-      const { banPick, playerOrder } = room;
-      const [p1, p2] = playerOrder;
+  const { banPick, playerOrder } = room;
+  const [p1] = playerOrder;
 
-      if (socket.id !== banPick.turn) {
-        console.log(`Ban rejected — not ${socket.id}'s turn`);
-        return;
-      }
+  if (socket.id !== banPick.turn) {
+    console.log(`Ban rejected — not ${socket.id}'s turn`);
+    return;
+  }
 
-      banPick.bans.push(category);
-      console.log(`${room.players[socket.id].name} banned: ${category}`);
+  banPick.bans.push(category);
+  console.log(`${room.players[socket.id].name} banned: ${category}`);
 
-      if (banPick.phase === 'ban1') {
-        banPick.phase = 'ban2';
-        banPick.turn  = p2;
-        io.to(roomId).emit('banPickUpdate', { phase: 'ban2', bans: banPick.bans, pick: banPick.pick, turn: p2 });
-      } else if (banPick.phase === 'ban2') {
-        banPick.phase = 'pick';
-        banPick.turn  = p1;
-        io.to(roomId).emit('banPickUpdate', { phase: 'pick', bans: banPick.bans, pick: banPick.pick, turn: p1 });
-      }
-    });
-
+  if (banPick.phase === 'ban1') {
+    // Move to ban2 — second banner's turn
+    const secondBanner = banPick.p2Banner || playerOrder.find(id => id !== socket.id);
+    banPick.phase = 'ban2';
+    banPick.turn  = secondBanner;
+    io.to(roomId).emit('banPickUpdate', { phase: 'ban2', bans: banPick.bans, pick: banPick.pick, turn: secondBanner });
+  } else if (banPick.phase === 'ban2') {
+    // Move to pick — first banner picks
+    const picker = banPick.p1Banner || p1;
+    banPick.phase = 'pick';
+    banPick.turn  = picker;
+    io.to(roomId).emit('banPickUpdate', { phase: 'pick', bans: banPick.bans, pick: banPick.pick, turn: picker });
+  }
+});
     // ── pickCategory ──────────────────────────────────────────
-    socket.on('pickCategory', ({ category }) => {
-      const roomId = playerToRoom[socket.id];
-      if (!roomId) return;
-      const room = rooms[roomId];
-      if (!room) return;
+  socket.on('pickCategory', ({ category }) => {
+  const roomId = playerToRoom[socket.id];
+  if (!roomId) return;
+  const room = rooms[roomId];
+  if (!room) return;
 
-      const { banPick, playerOrder } = room;
-      const [p1, p2] = playerOrder;
+  const { banPick, playerOrder } = room;
 
-      if (banPick.phase !== 'pick' || socket.id !== banPick.turn) {
-        console.log(`Pick rejected — not ${socket.id}'s turn or wrong phase`);
-        return;
-      }
+  if (banPick.phase !== 'pick' || socket.id !== banPick.turn) {
+    console.log(`Pick rejected — not ${socket.id}'s turn or wrong phase`);
+    return;
+  }
 
-      banPick.pick     = category;
-      banPick.phase    = 'playing';
-      room.currentCategory      = category;
-      room.categoryScores[category] = { [p1]: 0, [p2]: 0 };
-      room.currentQuestionIndex = 0;
-      room.roundAnswers         = {};
+  banPick.pick  = category;
+  banPick.phase = 'playing';
 
-      console.log(`${room.players[socket.id].name} picked category: ${category}`);
+  // Perma-remove picked category
+  room.playedCategories.push(category);
+  room.currentCategory      = category;
+  room.categoryScores[category] = {
+    [playerOrder[0]]: { correct: 0, totalCorrectTime: 0 },
+    [playerOrder[1]]: { correct: 0, totalCorrectTime: 0 },
+  };
+  room.currentQuestionIndex = 0;
+  room.roundAnswers         = {};
 
-      const firstQuestion = room.questionsForServer[category][0];
-      io.to(roomId).emit('categoryStart', {
-        category,
-        questionIndex: 0,
-        total: 3,
-        question: { _id: firstQuestion._id, question: firstQuestion.question },
-      });
-    });
+  // Available for next round = all 5 minus played
+  const nextAvailable = room.categories.filter(
+    c => !room.playedCategories.includes(c)
+  );
+  console.log(`${room.players[socket.id].name} picked: ${category}`);
+  console.log(`Played: ${room.playedCategories.join(', ')} | Remaining: ${nextAvailable.join(', ')}`);
+
+  const firstQuestion = room.questionsForServer[category][0];
+  io.to(roomId).emit('categoryStart', {
+    category,
+    questionIndex: 0,
+    total: 3,
+    question: { _id: firstQuestion._id, question: firstQuestion.question },
+  });
+});
 
     // ── submitAnswer ──────────────────────────────────────────
-    socket.on('submitAnswer', async ({ answer, responseTime }) => {
-      const roomId = playerToRoom[socket.id];
-      if (!roomId) return;
-      const room = rooms[roomId];
-      if (!room || !room.gameActive) return;
+   socket.on('submitAnswer', async ({ answer, responseTime }) => {
+  const roomId = playerToRoom[socket.id];
+  if (!roomId) return;
+  const room = rooms[roomId];
+  if (!room || !room.gameActive) return;
 
-      const { currentCategory, currentQuestionIndex, questionsForServer, playerOrder } = room;
-      if (!currentCategory || currentQuestionIndex >= questionsForServer[currentCategory]?.length) return;
+  const { currentCategory, currentQuestionIndex, questionsForServer, playerOrder } = room;
+  if (!currentCategory || currentQuestionIndex >= questionsForServer[currentCategory]?.length) return;
 
-      const [p1, p2]      = playerOrder;
-      const currentQuestion = questionsForServer[currentCategory][currentQuestionIndex];
-      if (!currentQuestion) return;
+  const [p1, p2] = playerOrder;
+  const currentQuestion = questionsForServer[currentCategory][currentQuestionIndex];
+  if (!currentQuestion) return;
 
-      const normalize  = (str) => str.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '');
-      const isCorrect  = normalize(answer) === normalize(currentQuestion.answer);
+  const normalize = (str) => str.toLowerCase().trim().replace(/[^a-z0-9\s]/g, '');
+  const isCorrect = normalize(answer) === normalize(currentQuestion.answer);
+  const safeResponseTime = responseTime || 0;
 
-      room.roundAnswers[socket.id] = { answer, isCorrect, responseTime: responseTime || 0 };
+  room.roundAnswers[socket.id] = { answer, isCorrect, responseTime: safeResponseTime };
 
-      console.log(`${room.players[socket.id].name} answered: "${answer}" — ${isCorrect ? 'correct' : 'wrong'}`);
+  // Update category scores immediately
+  if (isCorrect) {
+    room.categoryScores[currentCategory][socket.id].correct += 1;
+    room.categoryScores[currentCategory][socket.id].totalCorrectTime += safeResponseTime;
+  }
 
-      socket.emit('answerAcknowledged', {
-        questionId:    currentQuestion._id,
-        isCorrect,
-        correctAnswer: currentQuestion.answer,
+  console.log(`${room.players[socket.id].name} answered: "${answer}" — ${isCorrect ? 'correct' : 'wrong'}`);
+
+  socket.emit('answerAcknowledged', {
+    questionId:    currentQuestion._id,
+    isCorrect,
+    correctAnswer: currentQuestion.answer,
+  });
+
+  const allAnswered = playerOrder.every((pid) => room.roundAnswers[pid]);
+
+  if (allAnswered) {
+    // Build results object
+    const results = {};
+    playerOrder.forEach((pid) => {
+      results[pid] = {
+        name:         room.players[pid].name,
+        answer:       room.roundAnswers[pid].answer,
+        isCorrect:    room.roundAnswers[pid].isCorrect,
+        responseTime: room.roundAnswers[pid].responseTime,
+        score:        room.players[pid].score,
+      };
+    });
+
+    room.roundAnswers = {};
+    room.currentQuestionIndex += 1;
+    const categoryDone = room.currentQuestionIndex >= 3;
+
+    if (!categoryDone) {
+      // Next question in same category
+      const nextQ = questionsForServer[currentCategory][room.currentQuestionIndex];
+      io.to(roomId).emit('roundResults', {
+        results,
+        nextQuestion: { _id: nextQ._id, question: nextQ.question },
+        questionIndex: room.currentQuestionIndex,
+        categoryDone: false,
       });
+      return;
+    }
 
-      const allAnswered = playerOrder.every((pid) => room.roundAnswers[pid]);
+    // ── Category complete — determine winner ──────────────────
+    const catScores = room.categoryScores[currentCategory];
+    const p1Correct = catScores[p1].correct;
+    const p2Correct = catScores[p2].correct;
 
-      if (allAnswered) {
-        const results = {};
-        playerOrder.forEach((pid) => {
-          if (room.roundAnswers[pid].isCorrect) {
-            room.players[pid].score += 1;
-            room.categoryScores[currentCategory][pid] += 1;
-          }
-          results[pid] = {
-            name:         room.players[pid].name,
-            answer:       room.roundAnswers[pid].answer,
-            isCorrect:    room.roundAnswers[pid].isCorrect,
-            responseTime: room.roundAnswers[pid].responseTime,
-            score:        room.players[pid].score,
-          };
-        });
+    console.log(`Category scores — ${room.players[p1].name}: ${p1Correct} | ${room.players[p2].name}: ${p2Correct}`);
 
-        room.roundAnswers = {};
-        room.currentQuestionIndex += 1;
-        const categoryDone = room.currentQuestionIndex >= 3;
+    let categoryWinner = null; // null = tie
 
-        if (!categoryDone) {
-          const nextQ = questionsForServer[currentCategory][room.currentQuestionIndex];
-          io.to(roomId).emit('roundResults', {
-            results,
-            nextQuestion: { _id: nextQ._id, question: nextQ.question },
-            questionIndex: room.currentQuestionIndex,
-            categoryDone: false,
-          });
-        } else {
-          const catScores  = room.categoryScores[currentCategory];
-          const p1Correct  = catScores[p1];
-          const p2Correct  = catScores[p2];
+    if (p1Correct !== p2Correct) {
+      // Different correct count — higher wins
+      categoryWinner = p1Correct > p2Correct ? p1 : p2;
+    } else if (p1Correct > 0) {
+      // Same correct count but both got some right — tiebreak by total correct response time
+      const p1Time = catScores[p1].totalCorrectTime;
+      const p2Time = catScores[p2].totalCorrectTime;
+      categoryWinner = p1Time <= p2Time ? p1 : p2;
+      console.log(`Speed tiebreak — ${room.players[p1].name}: ${p1Time}ms | ${room.players[p2].name}: ${p2Time}ms`);
+    } else {
+      // Both got 0 correct — category tie, no point awarded
+      console.log(`Category tie — both got 0 correct`);
+    }
 
-          console.log(`Category scores — ${room.players[p1].name}: ${p1Correct} | ${room.players[p2].name}: ${p2Correct}`);
+    // Record category result
+    room.categoryResults[currentCategory] = {
+      winner: categoryWinner, // null if tie
+    };
 
-          let categoryWinner;
-          if (p1Correct !== p2Correct) {
-            categoryWinner = p1Correct > p2Correct ? p1 : p2;
-          } else {
-            const p1Time = results[p1].responseTime;
-            const p2Time = results[p2].responseTime;
-            categoryWinner = p1Time <= p2Time ? p1 : p2;
-          }
+    // Award match point if there's a winner
+    if (categoryWinner) {
+      room.players[categoryWinner].score += 1;
+      console.log(`Category "${currentCategory}" won by: ${room.players[categoryWinner].name}`);
+    } else {
+      console.log(`Category "${currentCategory}" tied — no point awarded`);
+    }
 
-          room.categoryResults[currentCategory] = { winner: categoryWinner };
-          console.log(`Category "${currentCategory}" winner: ${room.players[categoryWinner].name}`);
+    // ── Check match winner ────────────────────────────────────
+    const p1Wins = Object.values(room.categoryResults).filter(r => r.winner === p1).length;
+    const p2Wins = Object.values(room.categoryResults).filter(r => r.winner === p2).length;
+    const matchWinner = p1Wins >= 2 ? p1 : p2Wins >= 2 ? p2 : null;
 
-          const p1Wins = Object.values(room.categoryResults).filter((r) => r.winner === p1).length;
-          const p2Wins = Object.values(room.categoryResults).filter((r) => r.winner === p2).length;
-          const matchWinner = p1Wins >= 2 ? p1 : p2Wins >= 2 ? p2 : null;
+    if (matchWinner) {
+      // ── Match over ────────────────────────────────────────
+      room.gameActive = false;
+      console.log(`Match over — winner: ${room.players[matchWinner].name}`);
 
-          if (matchWinner) {
-            room.gameActive = false;
-            console.log(`Match over — winner: ${room.players[matchWinner].name}`);
+      const winnerSocket = io.sockets.sockets.get(matchWinner);
+      const winnerName   = winnerSocket?.data?.user?.username || room.players[matchWinner].name;
+      const loserId      = playerOrder.find(pid => pid !== matchWinner);
+      const loserSocket  = loserId ? io.sockets.sockets.get(loserId) : null;
+      const loserName    = loserSocket?.data?.user?.username || (loserId ? room.players[loserId].name : null);
 
-            // Identify winner and loser by their authenticated usernames if possible
-            const winnerSocket = io.sockets.sockets.get(matchWinner);
-            const winnerName   = winnerSocket?.data?.user?.username || room.players[matchWinner].name;
+      if (winnerName) await updateUserStats(winnerName, true);
+      if (loserName)  await updateUserStats(loserName, false);
 
-            const loserId      = playerOrder.find((pid) => pid !== matchWinner);
-            const loserSocket  = loserId ? io.sockets.sockets.get(loserId) : null;
-            const loserName    = loserSocket?.data?.user?.username || (loserId ? room.players[loserId].name : null);
+      io.to(roomId).emit('roundResults', {
+        results,
+        categoryDone:    true,
+        categoryWinner,
+        categoryResults: room.categoryResults,
+        matchWinner,
+      });
+      return;
+    }
 
-            if (winnerName) await updateUserStats(winnerName, true);
-            if (loserName) await updateUserStats(loserName, false);
-          } else {
-            // Match continues — reset banPick for next round pick
-            // Alternate turn to the player who DID NOT pick this time
-            const lastPicker = room.banPick.turn; 
-            const nextPicker = playerOrder.find(id => id !== lastPicker);
-            
-            room.banPick.phase = 'pick';
-            room.banPick.turn  = nextPicker;
-            room.banPick.pick  = null;
-            
-            console.log(`Match continues — next picker: ${room.players[nextPicker].name}`);
-          }
+    // ── Determine next phase based on remaining categories ────
+const remaining = room.categories.filter(
+  c => !room.playedCategories.includes(c)
+);
+const remainingCount = remaining.length;
 
-          io.to(roomId).emit('roundResults', {
-            results,
-            categoryDone:    true,
-            categoryWinner,
-            categoryResults: room.categoryResults,
-            matchWinner,
-            banPick: room.banPick, 
-          });
-        }
+if (remainingCount === 0) {
+  room.gameActive = false;
+
+  const categoryWins = {};
+  playerOrder.forEach(pid => {
+    categoryWins[pid] = Object.values(room.categoryResults)
+      .filter(r => r.winner === pid).length;
+  });
+
+  console.log('No categories left — match is a draw');
+
+  io.to(roomId).emit('roundResults', {
+    results,
+    categoryDone: true,
+    categoryWinner,
+    categoryResults: room.categoryResults,
+    categoryWins,
+    matchWinner: null,
+    isDraw: true,
+  });
+
+  setTimeout(() => {
+    delete rooms[roomId];
+    playerOrder.forEach(pid => delete playerToRoom[pid]);
+  }, 1500);
+
+  return;
+}
+
+const lastBanner   = room.banPick.p1Banner;
+const nextBanner   = playerOrder.find(id => id !== lastBanner);
+const secondBanner = lastBanner;
+const lastPicker   = room.banPick.turn;
+const nextPicker   = playerOrder.find(id => id !== lastPicker) || playerOrder[0];
+
+if (remainingCount >= 3) {
+  // Full ban phase — rounds where enough categories remain
+  room.banPick.phase     = 'ban1';
+  room.banPick.turn      = nextBanner;
+  room.banPick.pick      = null;
+  room.banPick.bans      = [];
+  room.banPick.p1Banner  = nextBanner;
+  room.banPick.p2Banner  = secondBanner;
+  room.banPick.isReserve = false;
+  console.log(`Round continues — full ban phase. First banner: ${room.players[nextBanner].name}`);
+} else {
+  // Tiebreaker rounds 4 and 5 — no bans, just pick from remaining
+  room.banPick.phase     = 'pick';
+  room.banPick.turn      = nextPicker;
+  room.banPick.pick      = null;
+  room.banPick.bans      = [];
+  room.banPick.isReserve = true;
+  console.log(`Tiebreaker — pick only from: ${remaining.join(', ')}. Picker: ${room.players[nextPicker].name}`);
+}
+
+io.to(roomId).emit('roundResults', {
+  results,
+  categoryDone:        true,
+  categoryWinner,
+  categoryResults:     room.categoryResults,
+  matchWinner:         null,
+  banPick:             room.banPick,
+  availableCategories: remaining,
+});
       }
     });
 

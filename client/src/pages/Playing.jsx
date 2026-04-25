@@ -1,5 +1,6 @@
 import React from 'react';
 import { useGame } from '../contexts/GameContext';
+import ChatPanel from '../components/ChatPanel';
 
 function Playing() {
   const {
@@ -7,6 +8,8 @@ function Playing() {
     currentQuestion, userAnswer, setUserAnswer,
     roundResults, myResult,
     playerScore, opponentScore,
+    playerCategoryWins,      // ✅ ADD
+  opponentCategoryWins,    // ✅ ADD
     timeLeft,
     botAnswered,
     handleSubmitAnswer,
@@ -131,15 +134,23 @@ function Playing() {
       )}
 
       <div className="scoreboard">
-        <div className="score-card">
-          {playerName}<br />Score: {playerScore}
-        </div>
-        {gameMode !== 'practice' && (
-          <div className="score-card">
-            {roomInfo?.opponent?.name || 'Bot Knight'}<br />Score: {opponentScore}
-          </div>
-        )}
-      </div>
+  <div className="score-card">
+    {playerName}<br />
+    {gameMode === 'ranked'
+      ? `Category Wins: ${playerCategoryWins ?? 0}`
+      : `Score: ${playerScore}`
+    }
+  </div>
+  {gameMode !== 'practice' && (
+    <div className="score-card">
+      {roomInfo?.opponent?.name || 'Bot Knight'}<br />
+      {gameMode === 'ranked'
+        ? `Category Wins: ${opponentCategoryWins ?? 0}`
+        : `Score: ${opponentScore}`
+      }
+    </div>
+  )}
+</div>
 
       <div className="question-area">
         <h2>{currentQuestion?.question}</h2>
@@ -179,8 +190,10 @@ function Playing() {
           </ul>
         </div>
       )}
+       {gameMode === 'ranked' && <ChatPanel />}
     </div>
   );
+
 }
 
 export default Playing;

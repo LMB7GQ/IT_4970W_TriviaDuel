@@ -41,6 +41,13 @@ export const GameProvider = ({ children }) => {
   const [finishReason, setFinishReason] = useState('normal'); // 'normal' | 'disconnect'
   const [categoryWinnerName, setCategoryWinnerName] = useState(null);
 
+  const [playerCategoryWins, setPlayerCategoryWins] = useState(0);
+  const [opponentCategoryWins, setOpponentCategoryWins] = useState(0);
+  const roomInfoRef = React.useRef(null);
+  useEffect(() => {
+    roomInfoRef.current = roomInfo;
+  }, [roomInfo]);
+
   const fetchUserData = useCallback(async () => {
     if (!token) return;
   
@@ -212,89 +219,86 @@ export const GameProvider = ({ children }) => {
       console.log('[Socket] Event: answerAcknowledged', data);
       setMyResult(data);
     });
+socket.on('roundResults', (data) => {
+  console.log('[Socket] Event: roundResults', data);
 
-    socket.on('roundResults', (data) => {
-      console.log('[Socket] Event: roundResults', data);
-      setRoundResults(data.results);
+  const myId = roomInfoRef.current?.myId;  // ← always fresh
 
-      if (roomInfo?.myId && data.results?.[roomInfo.myId]) {
-        setPlayerScore(data.results[roomInfo.myId].score);
-      }
-      // ... (rest of score logic) ...
+  setRoundResults(data.results);
 
-      const oppId =
-        roomInfo?.myId && data.results
-          ? Object.keys(data.results).find((id) => id !== roomInfo.myId)
-          : null;
+  // Update category wins
+  if (data.categoryResults && myId) {
+    const myWins = Object.values(data.categoryResults)
+      .filter(r => r.winner === myId).length;
+    const oppWins = Object.values(data.categoryResults)
+      .filter(r => r.winner !== myId && r.winner !== null).length;
+    setPlayerCategoryWins(myWins);
+    setOpponentCategoryWins(oppWins);
+  }
 
-      if (oppId && data.results?.[oppId]) {
-        setOpponentScore(data.results[oppId].score);
-      }
+  if (myId && data.results?.[myId]) {
+    setPlayerScore(data.results[myId].score);
+  }
 
-      if (data.categoryWinner && data.results?.[data.categoryWinner]) {
-        setCategoryWinnerName(data.results[data.categoryWinner].name);
-      }
+  const oppId = myId && data.results
+    ? Object.keys(data.results).find(id => id !== myId)
+    : null;
 
-      if (data.matchWinner) {
-        const myFinalScore =
-          roomInfo?.myId && data.results?.[roomInfo.myId]
-            ? data.results[roomInfo.myId].score
-            : 0;
-      
-        const oppFinalId =
-          roomInfo?.myId && data.results
-            ? Object.keys(data.results).find((id) => id !== roomInfo.myId)
-            : null;
-      
-        const oppFinalScore =
-          oppFinalId && data.results?.[oppFinalId]
-            ? data.results[oppFinalId].score
-            : 0;
-      
-        setPlayerScore(myFinalScore);
-        setOpponentScore(oppFinalScore);
-        setFinishReason('normal');
-      
-        if (myFinalScore > oppFinalScore) {
-          setMatchResult('win');
-        } else if (myFinalScore < oppFinalScore) {
-          setMatchResult('loss');
-        } else {
-          setMatchResult('draw');
-        }
-      
-        setTimeout(() => {
-          fetchUserData();
-          setMyResult(null);
-          setScreen('finished');
-        }, 2000);
-      }
-       else if (!data.categoryDone) {
-        setTimeout(() => {
-          setCurrentQuestion(data.nextQuestion);
-          setQuestionIndex(data.questionIndex);
-          setRoundResults(null);
-          setMyResult(null);
-          setTimeLeft(15);
-        }, 2000);
-      } else {
-        console.log('[Socket] Category completed, returning to ban/pick phase');
-        
-        if (data.categoryResults) {
-          setRoomInfo((prev) => ({ ...prev, categoryResults: data.categoryResults }));
-        }
-        if (data.banPick) {
-          setBanPick(data.banPick);
-        }
+  if (oppId && data.results?.[oppId]) {
+    setOpponentScore(data.results[oppId].score);
+  }
 
-        setTimeout(() => {
-          setCurrentQuestion(null);
-          setRoundResults(null);
-          setMyResult(null);
-          setScreen('banPick');
-        }, 2000);
-      }
-    });
+  if (data.categoryWinner && data.results?.[data.categoryWinner]) {
+    setCategoryWinnerName(data.results[data.categoryWinner].name);
+  }
+
+  // Match over
+  const isMatchOver = (typeof data.matchWinner === 'string' && data.matchWinner.length > 0) || data.isDraw === true;
+  if (isMatchOver) {
+    if (data.isDraw) {
+      setMatchResult('draw');
+    } else {
+      setMatchResult(data.matchWinner === myId ? 'win' : 'loss');
+    }
+    setFinishReason('normal');
+    setTimeout(() => {
+      fetchUserData();
+      setMyResult(null);
+      setScreen('finished');
+    }, 2000);
+    return;
+  }
+
+  // Category done — back to ban/pick
+  if (data.categoryDone === true) {
+    if (data.categoryResults) {
+      setRoomInfo(prev => ({
+        ...prev,
+        categoryResults:     data.categoryResults,
+        availableCategories: data.availableCategories || prev?.availableCategories,
+      }));
+    }
+    if (data.banPick) setBanPick(data.banPick);
+    setTimeout(() => {
+      setCurrentQuestion(null);
+      setRoundResults(null);
+      setMyResult(null);
+      setScreen('banPick');
+    }, 2000);
+    return;
+  }
+
+  // Next question in same category
+  setTimeout(() => {
+    if (data.nextQuestion) {
+      setCurrentQuestion(data.nextQuestion);
+      setQuestionIndex(data.questionIndex);
+    }
+    setRoundResults(null);
+    setMyResult(null);
+    setTimeLeft(15);
+  }, 2000);
+});
 
     socket.on('opponentDisconnected', (data) => {
       console.log('[Socket] Event: opponentDisconnected', data);
@@ -645,46 +649,41 @@ const login = useCallback(async (username, password) => {
 }, [reconnectSocket]);  // ← add reconnectSocket to dependency array
 
   const signup = useCallback(async (username, password) => {
-    try {
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password })
-      });
-  
-      const data = await response.json();
-  
-      if (response.ok) {
-        const receivedToken = data.token || null;
-        const receivedUser = data.user || { username };
-        reconnectSocket();
-        return { success: true };
-  
-        if (receivedToken) {
-          setToken(receivedToken);
-          localStorage.setItem('token', receivedToken);
-        }
-  
-        setPlayerName(receivedUser.username || username);
-        setUserData(receivedUser);
-        setIsAuthenticated(true);
-        setScreen('modeSelect');
-  
-        // Reconnect socket with new token after auth
-        reconnectSocket();
-  
-        return { success: true };
-      }
-  
-      return {
-        success: false,
-        message: data.error || data.message || 'Registration failed'
-      };
-    } catch (err) {
-      return { success: false, message: 'Network error' };
-    }
-  }, [reconnectSocket]);
+  try {
+    const response = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
 
+    const data = await response.json();
+
+    if (response.ok) {
+      const receivedToken = data.token || null;
+      const receivedUser = data.user || { username };
+
+      if (receivedToken) {
+        setToken(receivedToken);
+        localStorage.setItem('token', receivedToken);
+      }
+
+      setPlayerName(receivedUser.username || username);
+      setUserData(receivedUser);
+      setIsAuthenticated(true);
+      setScreen('modeSelect');
+      reconnectSocket();
+
+      return { success: true };
+    }
+
+    return {
+      success: false,
+      message: data.error || data.message || 'Registration failed'
+    };
+  } catch (err) {
+    return { success: false, message: 'Network error' };
+  }
+}, [reconnectSocket]);
   useEffect(() => {
     if (isAuthenticated && screen === 'login') {
       setScreen('modeSelect');
@@ -756,7 +755,9 @@ const login = useCallback(async (username, password) => {
     isAuthenticated,
     matchResult,
     finishReason,
-    categoryWinnerName
+    categoryWinnerName,
+    playerCategoryWins,
+    opponentCategoryWins,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;
