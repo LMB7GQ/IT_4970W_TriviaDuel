@@ -4,6 +4,11 @@ import { useGame } from '../contexts/GameContext';
 function UserProfile() {
     const { userData, setScreen, logout } = useGame();
 
+    const feedbackForm = () => {
+            const link="https://docs.google.com/forms/d/e/1FAIpQLSemHNMO2h8pj1ky54JfBsgjc8lu_c8AY9fVQGoFBP7CNqAeYQ/viewform?usp=publish-editor"
+            window.open(link, '_blank');
+        };
+
     // show a loading stat if data hasn't arrived yet
     if (!userData) {
         return (
@@ -42,6 +47,9 @@ function UserProfile() {
             </button>
             <button onClick={logout}>
                 Logout
+            </button>
+            <button onClick={feedbackForm}>
+                Feedback
             </button>
         </div>
     );
