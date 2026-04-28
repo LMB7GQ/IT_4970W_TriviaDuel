@@ -19,6 +19,8 @@ function Playing() {
 
   const [showQuitModal, setShowQuitModal] = React.useState(false);
 
+  const [isChatMinimized, setIsChatMinimized] = React.useState(false);
+
   const handleQuitConfirm = () => {
     if (gameMode === 'ranked') {
       leaveMatch();
@@ -190,7 +192,10 @@ function Playing() {
           </ul>
         </div>
       )}
-       {gameMode === 'ranked' && <ChatPanel />}
+       {gameMode === 'ranked' && (<ChatPanel 
+        isMinimized={isChatMinimized}
+        setIsMinimized={setIsChatMinimized}
+        />)}
     </div>
   );
 

@@ -6,6 +6,8 @@ function BanPick() {
   const { socket, banPick, roomInfo, gameMode, leaveMatch } = useGame();
   const [showQuitModal, setShowQuitModal] = React.useState(false);
 
+  const [isChatMinimized, setIsChatMinimized] = React.useState(false)
+  
   // Get completed categories from roomInfo
   const completedCategories = roomInfo?.categoryResults ? Object.keys(roomInfo.categoryResults) : [];
   
@@ -120,7 +122,10 @@ const displayCategories = isReserve
   })}
 </div>
 
-      {gameMode === 'ranked' && <ChatPanel />}
+      {gameMode === 'ranked' && (<ChatPanel
+        isMinimized={isChatMinimized}
+        setIsMinimized={setIsChatMinimized}
+      />)}
     </div>
   );
 }
