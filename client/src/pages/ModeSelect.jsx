@@ -23,9 +23,7 @@ function ModeSelect() {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const res = await fetch('http://localhost:5000/api/leaderboard', {
-          cache: 'no-store'
-        });
+        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/';
 
         const data = await res.json();
         console.log("LEADERBOARD DATA:", data);
