@@ -5,6 +5,8 @@ import InviteModal from '../components/InviteModal';
 import InviteNotification from '../components/InviteNotification';
 import GameLogo from '../components/GameLogo';
 
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+
 function ModeSelect() {
   const {
     playerName,
@@ -23,7 +25,9 @@ function ModeSelect() {
   useEffect(() => {
     const fetchLeaderboard = async () => {
       try {
-        const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:5000/';
+        const res = await fetch(`${API_URL}/api/leaderboard`, {
+          cache: 'no-store'
+        });
 
         const data = await res.json();
         console.log("LEADERBOARD DATA:", data);
