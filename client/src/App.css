@@ -779,7 +779,7 @@ body {
   padding: 8px 0;
   border-bottom: 1px solid rgba(244, 231, 193, 0.15);
 }
-
+/*
 @media (max-width: 900px) {
   .mode-select-layout {
     grid-template-columns: 1fr;
