@@ -697,6 +697,23 @@ const login = useCallback(async (username, password) => {
     }
   }, []); // Only runs once when the app loads
 
+  const updateProfilePic = useCallback(async (picIndex) => {
+    setUserData((prev) => ({ ...prev, profilePic: picIndex }));
+    try {
+      const response = await fetch(`${API_URL}/api/users/profilePic`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ profilePic: picIndex }),
+      });
+      if (!response.ok) console.error('Failed to save profile picture to server');
+    } catch (err) {
+      console.error('updateProfilePic error:', err);
+    }
+  }, [token]);
+
   const logout = useCallback(() => {
     setToken(null);
     setIsAuthenticated(false);
@@ -749,6 +766,7 @@ const login = useCallback(async (username, password) => {
     login,
     signup,
     logout,
+    updateProfilePic,
     handleSubmitAnswer,
     loading,
     userData,

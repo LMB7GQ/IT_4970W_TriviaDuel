@@ -105,12 +105,13 @@ const login = async (req, res) => {
 const getMe = async (req, res) => {
   res.json({
     user: {
-      id:       req.user._id,
-      username: req.user.username,
-      rank:     req.user.rank,
-      wins:     req.user.wins,
-      losses:   req.user.losses,
-      streak:   req.user.streak,
+      id:         req.user._id,
+      username:   req.user.username,
+      rank:       req.user.rank,
+      wins:       req.user.wins,
+      losses:     req.user.losses,
+      streak:     req.user.streak,
+      profilePic: req.user.profilePic ?? 0,
     },
   });
 };

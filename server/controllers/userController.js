@@ -114,9 +114,24 @@ async function getLeaderboard(req, res) {
   }
 }
 
+// PUT /api/users/profilePic — update the logged-in user's profile picture index
+async function updateProfilePic(req, res) {
+  try {
+    const { profilePic } = req.body;
+    if (typeof profilePic !== 'number' || profilePic < 0 || profilePic > 11) {
+      return res.status(400).json({ error: 'Invalid profilePic value' });
+    }
+    await User.findByIdAndUpdate(req.user._id, { profilePic });
+    res.json({ profilePic });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+}
+
 module.exports = {
   getUser,
   createUser,
   login,
   getLeaderboard,
+  updateProfilePic,
 };
