@@ -138,44 +138,34 @@ function Playing() {
         </div>
       )}
 
-      <button
+      <div
+        role="button"
         onClick={() => setShowHowToPlay(true)}
         style={{
           position: 'absolute', top: '10px', left: '10px',
           width: '50px', height: '50px', backgroundColor: '#4fc3f7',
           color: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '10px', fontWeight: 'bold', borderRadius: '4px',
-          border: 'none', cursor: 'pointer', zIndex: 10,
+          cursor: 'pointer', zIndex: 10,
           boxShadow: '0 2px 4px rgba(0,0,0,0.3)', textAlign: 'center', lineHeight: '1.2'
         }}
       >
         How to Play
-      </button>
+      </div>
 
-      <button
+      <div
+        role="button"
         onClick={() => setShowQuitModal(true)}
         style={{
-          position: 'absolute',
-          top: '10px',
-          right: '10px',
-          width: '50px',
-          height: '50px',
-          backgroundColor: '#d32f2f',
-          color: 'white',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontSize: '12px',
-          fontWeight: 'bold',
-          borderRadius: '4px',
-          border: 'none',
-          cursor: 'pointer',
-          zIndex: 10,
-          boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          position: 'absolute', top: '10px', right: '10px',
+          width: '50px', height: '50px', backgroundColor: '#d32f2f',
+          color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '12px', fontWeight: 'bold', borderRadius: '4px',
+          cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
         }}
       >
         Quit
-      </button>
+      </div>
 
       <div className="matchup-line">
         {gameMode === 'practice' ? `${playerName} Practice` : `${playerName} vs ${roomInfo?.opponent?.name || 'Bot Knight'}`}

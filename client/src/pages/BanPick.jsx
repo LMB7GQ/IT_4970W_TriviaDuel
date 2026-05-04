@@ -37,7 +37,7 @@ const displayCategories = isReserve
   if (!roomInfo || !banPick || !banPick.bans) return null;
 
   return (
-    <div className="game-section" style={{ position: 'relative' }}>
+    <div className="game-section" style={{ position: 'relative', width: '600px', maxWidth: '90vw', margin: '0 auto' }}>
       {/* Quit Confirmation Modal */}
       {showQuitModal && (
         <div style={{
@@ -103,32 +103,34 @@ const displayCategories = isReserve
         </div>
       )}
 
-      <button
+      <div
+        role="button"
         onClick={() => setShowHowToPlay(true)}
         style={{
           position: 'absolute', top: '10px', left: '10px',
           width: '50px', height: '50px', backgroundColor: '#4fc3f7',
           color: '#1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '10px', fontWeight: 'bold', borderRadius: '4px',
-          border: 'none', cursor: 'pointer', zIndex: 10,
+          cursor: 'pointer', zIndex: 10,
           boxShadow: '0 2px 4px rgba(0,0,0,0.3)', textAlign: 'center', lineHeight: '1.2'
         }}
       >
         How to Play
-      </button>
+      </div>
 
-      <button
+      <div
+        role="button"
         onClick={() => setShowQuitModal(true)}
         style={{
           position: 'absolute', top: '10px', right: '10px',
           width: '50px', height: '50px', backgroundColor: '#d32f2f',
           color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
           fontSize: '12px', fontWeight: 'bold', borderRadius: '4px',
-          border: 'none', cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+          cursor: 'pointer', zIndex: 10, boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
         }}
       >
         Quit
-      </button>
+      </div>
 
       {/* ✅ Updated header — shows tiebreaker label for reserve rounds */}
       {/* ✅ Updated header */}
